@@ -1,0 +1,43 @@
+# Python bytecode and test/tool caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local Python environments and package/build artifacts
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Local secrets and environment configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Gradio and notebook runtime state
+.gradio/
+src/.gradio/
+.ipynb_checkpoints/
+
+# Local or generated datasets and training artifacts
+data/
+docs/PROJECT_GUIDE.md
+docs/reports/
+outputs/*
+!outputs/best_efficientnet_b0.pth
+!outputs/.gitkeep
+
+# Logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db
