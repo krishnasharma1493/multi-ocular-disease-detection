@@ -41,3 +41,6 @@ outputs/*
 *.log
 .DS_Store
 Thumbs.db
+
+# RetinaScreen web app screening records
+screenings/

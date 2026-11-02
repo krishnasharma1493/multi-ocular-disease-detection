@@ -1,4 +1,4 @@
-"""Gradio app: upload a fundus photo and screen for:
+"""RetinaScreen web app (with the classic Gradio UI at /gradio): upload a fundus photo and screen for:
 1. Myopia
 2. Cataract
 3. Glaucoma
@@ -93,17 +93,30 @@ def build_interface(model, checkpoint, device):
     )
 
 
-def launch_demo(checkpoint_path='outputs/best_efficientnet_b0.pth', share=False, port=7860):
-    """Launch the Gradio demo interface"""
+def launch_demo(checkpoint_path='outputs/best_efficientnet_b0.pth', share=False, port=7860, classic=False):
+    """Serve the RetinaScreen web app (classic Gradio UI at /gradio).
+
+    --share and --classic launch only the classic Gradio interface, since public
+    gradio.live links are a Gradio feature.
+    """
     device = get_device()
     model, checkpoint = load_model(checkpoint_path, device)
-    build_interface(model, checkpoint, device).launch(share=share, server_port=port)
+    interface = build_interface(model, checkpoint, device)
+    if share or classic:
+        interface.launch(share=share, server_port=port)
+        return
+    import uvicorn
+    from src.webapp import create_app
+    app = create_app(model, checkpoint, device, _resolve(checkpoint_path), gradio_blocks=interface)
+    print(f'RetinaScreen running on http://127.0.0.1:{port}  (classic Gradio UI: /gradio)')
+    uvicorn.run(app, host='127.0.0.1', port=port, log_level='warning')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--checkpoint', default='outputs/best_efficientnet_b0.pth')
-    parser.add_argument('--share', action='store_true', help='Create a public gradio.live link')
+    parser.add_argument('--share', action='store_true', help='Create a public gradio.live link (classic UI)')
+    parser.add_argument('--classic', action='store_true', help='Serve only the classic Gradio UI')
     parser.add_argument('--port', type=int, default=7860)
     args = parser.parse_args()
-    launch_demo(args.checkpoint, share=args.share, port=args.port)
+    launch_demo(args.checkpoint, share=args.share, port=args.port, classic=args.classic)

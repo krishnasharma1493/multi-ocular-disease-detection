@@ -59,7 +59,9 @@ The repository includes an EfficientNet-B0 checkpoint at `outputs/best_efficient
 python src/demo.py
 ```
 
-Open `http://127.0.0.1:7860` and upload a fundus image. Options include `--checkpoint PATH`, `--port N`, and `--share`; sharing creates a public Gradio link.
+Open `http://127.0.0.1:7860` for the RetinaScreen web app (`web/`): a ledger of today's screenings, a new-screening flow with a Grad-CAM attention map, a detail screen for each eye, and the model's test metrics. Screenings are saved in `screenings/` (git-ignored). The classic Gradio interface is still served at `/gradio`.
+
+Options include `--checkpoint PATH`, `--port N`, `--classic` (Gradio interface only), and `--share`; sharing launches the Gradio interface with a public Gradio link.
 
 ## Project structure
 
