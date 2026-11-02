@@ -1,0 +1,21 @@
+{
+  "_comment": "One fictional eye-camp story. Patient refs and notes are synthetic; photos are ODIR test-split images.",
+  "users": [
+    { "email": "demo@example.com", "name": "Screening technician", "is_admin": true },
+    { "email": "judge@example.com", "name": "Judge", "is_admin": false }
+  ],
+  "screenings": [
+    { "owner": "demo@example.com", "patient_ref": "P-0147", "eye": "right", "image": "myopia_1547_right.jpg", "status": "analyzed", "notes": "Wears thick glasses; blurred distance vision." },
+    { "owner": "demo@example.com", "patient_ref": "P-0152", "eye": "right", "image": "cataract_112_right.jpg", "status": "reviewed", "notes": "Hazy view on the camera; age 67." },
+    { "owner": "demo@example.com", "patient_ref": "P-0158", "eye": "right", "image": "glaucoma_1234_right.jpg", "status": "analyzed", "notes": "Family history of glaucoma." },
+    { "owner": "demo@example.com", "patient_ref": "P-0161", "eye": "right", "image": "dr_5_right.jpg", "status": "analyzed", "notes": "Type 2 diabetes for 12 years." },
+    { "owner": "demo@example.com", "patient_ref": "P-0166", "eye": "right", "image": "normal_115_right.jpg", "status": "analyzed", "notes": "Routine check, no complaints." },
+    { "owner": "demo@example.com", "patient_ref": "P-0170", "eye": "right", "image": "myopia_1529_right.jpg", "status": "reviewed", "notes": "High minus prescription." },
+    { "owner": "demo@example.com", "patient_ref": "P-0175", "eye": "right", "image": "cataract_354_right.jpg", "status": "pending", "notes": "Glare when driving at night." },
+    { "owner": "judge@example.com", "patient_ref": "P-0201", "eye": "right", "image": "dr_90_right.jpg", "status": "pending", "notes": "Diabetic; previous laser treatment." }
+  ],
+  "reviews": [
+    { "owner": "demo@example.com", "screening_id": 2, "decision": "agree", "note": "Lens opacity visible." },
+    { "owner": "demo@example.com", "screening_id": 6, "decision": "disagree", "note": "Myopic changes at the macula; the model scored myopia below its threshold." }
+  ]
+}

@@ -42,5 +42,15 @@ outputs/*
 .DS_Store
 Thumbs.db
 
-# RetinaScreen web app screening records
-screenings/
+
+# Web app (backend/ + frontend/)
+backend/.env
+backend/app.db
+backend/*.db
+backend/uploads/
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/test-results/
+frontend/playwright-report/
+.playwright-mcp/

@@ -3,7 +3,8 @@
 <p>
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?logo=pytorch&logoColor=white">
-  <img alt="Gradio" src="https://img.shields.io/badge/Gradio-interface-F97316?logo=gradio&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black">
 </p>
 
 This repository contains a research prototype that screens retinal fundus photographs for pathological myopia, cataract, glaucoma, and diabetic retinopathy.
@@ -14,7 +15,7 @@ Retinal images can show more than one disease, while public datasets often label
 
 ## Approach
 
-The project fine-tunes an ImageNet-pretrained EfficientNet-B0 model for four-label prediction. Its training pipeline combines ODIR-5K with optional external fundus datasets, uses a masked loss for unknown labels, and creates patient-level train, validation, and test splits. Decision thresholds are selected on the validation split. A Gradio app runs inference on an uploaded image.
+The project fine-tunes an ImageNet-pretrained EfficientNet-B0 model for four-label prediction. Its training pipeline combines ODIR-5K with optional external fundus datasets, uses a masked loss for unknown labels, and creates patient-level train, validation, and test splits. Decision thresholds are selected on the validation split. The RetinaScreen web app (FastAPI backend + React frontend) runs the model on uploaded photos and shows a Grad-CAM attention map for positive results.
 
 This is research software, not a medical device. Its predictions are not a diagnosis and must not be used as a substitute for clinical review.
 
@@ -51,17 +52,68 @@ python main.py
 
 Optional external datasets go under `data/external/<dataset-name>/`. The ingestion code recognizes several common label-sheet, folder, and filename conventions; see `src/external_datasets.py` for the supported formats. Check each dataset's license before using it. Training writes metrics, plots, and a PDF report to `outputs/`.
 
-## Run the demo
+## Run the web app
 
-The repository includes an EfficientNet-B0 checkpoint at `outputs/best_efficientnet_b0.pth`, so the demo can be run without downloading training data:
+The repository includes an EfficientNet-B0 checkpoint at `outputs/best_efficientnet_b0.pth`, so the app runs without the training data. One server on port 7860 serves the API and the built frontend.
 
 ```bash
-python src/demo.py
+# 1. Backend dependencies (into the repo venv from "Install")
+pip install -r backend/requirements.txt
+
+# 2. Backend settings: set JWT_SECRET (64 hex chars) and DEMO_PASSWORD (8+ chars)
+cp backend/.env.example backend/.env
+python -c "import secrets; print(secrets.token_hex(32))"   # paste as JWT_SECRET
+
+# 3. Frontend build (Node 20+); set VITE_DEMO_PASSWORD to the same DEMO_PASSWORD to pre-fill sign-in
+cp frontend/.env.example frontend/.env
+(cd frontend && npm ci && npm run build)
+
+# 4. Start
+python src/demo.py            # = cd backend && uvicorn app.main:app --port 7860
 ```
 
-Open `http://127.0.0.1:7860` for the RetinaScreen web app (`web/`): a ledger of today's screenings, a new-screening flow with a Grad-CAM attention map, a detail screen for each eye, and the model's test metrics. Screenings are saved in `screenings/` (git-ignored). The classic Gradio interface is still served at `/gradio`.
+Open `http://127.0.0.1:7860` and sign in as `demo@example.com` with `DEMO_PASSWORD`. The startup log says `Model loaded on <device>`.
 
-Options include `--checkpoint PATH`, `--port N`, `--classic` (Gradio interface only), and `--share`; sharing launches the Gradio interface with a public Gradio link.
+- **Screens:** sign-in, Ledger (today's screenings, triage queue, findings by disease), Screenings (search, status filter, pages), New screening (photo upload with quality checks), the scan and result reveal with Grad-CAM regions, screening detail with reviewer reads, and the model card.
+- **Data:** SQLite at `backend/app.db` and photos in `backend/uploads/` (both git-ignored). An empty database is seeded on start-up with eight ODIR **test-split** photos and fictional patient refs. `cd backend && python -m app.seed --reset` restores that state.
+- **Fallbacks:** `USE_MOCKS=true` never loads the model. Seeded screenings then use results the real model produced for them (`python -m app.fixtures`), and any other photo gets "Model offline" rather than a made-up result. `AUTH_DISABLED=true` (backend) with `VITE_AUTH_DISABLED=true` (frontend) skips sign-in.
+- **Development:** `cd frontend && npm run dev` serves the frontend on port 5173 with the API proxied to 7860. Backend details and tests are in [backend/README.md](backend/README.md).
+
+## Results
+
+Held-out test set (871 eyes from patients not seen in training). Generated from `outputs/metrics.json` with:
+
+```bash
+python -c "import json; t=json.load(open('outputs/metrics.json'))['test']; [print(d, *(round(m[k],3) for k in ('precision','recall','f1','ap','roc_auc')), m['support']) for d,m in t['per_class'].items()]"
+```
+
+| Disease | Precision | Recall | F1 | AP | ROC-AUC | Positives |
+|---|---|---|---|---|---|---|
+| Myopia | 0.957 | 0.947 | 0.952 | 0.994 | 0.999 | 95 |
+| Cataract | 0.844 | 0.864 | 0.854 | 0.908 | 0.951 | 44 |
+| Glaucoma | 0.869 | 0.863 | 0.866 | 0.927 | 0.957 | 131 |
+| Diabetic Retinopathy | 0.758 | 0.684 | 0.719 | 0.838 | 0.874 | 174 |
+
+Everyday ODIR photos only (`test.by_source[<disease>]["ODIR"]`):
+
+| Disease | AP | ROC-AUC |
+|---|---|---|
+| Myopia | 0.973 | 0.998 |
+| Cataract | 0.843 | 0.926 |
+| Glaucoma | 0.386 | 0.809 |
+| Diabetic Retinopathy | 0.826 | 0.866 |
+
+## Limitations
+
+- Research prototype, not a medical device and not clinically validated; confirm every result with an ophthalmologist.
+- Screens only these four diseases; photos showing other conditions may be flagged as one of them.
+- "Myopia" means pathological myopia visible on the photo; mild myopia usually looks normal.
+- Glaucoma is weak on everyday camp photos (ODIR-only AP 0.39 versus 0.93 overall).
+- Performance on other cameras and populations is unknown.
+
+## Acknowledgements
+
+Training used public fundus datasets: [ODIR-5K](https://www.kaggle.com/datasets/andrewmvd/ocular-disease-recognition-odir5k), [PALM](https://palm.grand-challenge.org/), [JSIEC](https://www.kaggle.com/datasets/linchundan/fundusimage1000), [CSDI](https://www.kaggle.com/datasets/jr2ngb/cataractdataset), [ACRIMA](https://figshare.com/s/c2d31f850af14c5b5232), [PAPILA](https://figshare.com/articles/dataset/PAPILA/14798004), [HRF](https://www5.cs.fau.de/research/data/fundus-images/) and [HYGD](https://physionet.org/content/hygd/). Check each dataset's licence before reuse.
 
 ## Project structure
 
@@ -70,7 +122,9 @@ Options include `--checkpoint PATH`, `--port N`, `--classic` (Gradio interface o
 ├── assets/examples/       # Images shown in the demo
 ├── data/                  # Local datasets (not version-controlled)
 ├── outputs/               # Model checkpoint and local training outputs
-├── src/                   # Dataset, model, training, evaluation, and demo code
+├── backend/               # FastAPI API, SQLite models, seed data, tests
+├── frontend/              # React + Vite + TypeScript web app
+├── src/                   # Dataset, model, training, evaluation, Grad-CAM and app launcher
 ├── main.py                # Training and evaluation entry point
 ├── preprocess_dataset.py  # Label and split generation
 └── requirements.txt       # Python dependencies

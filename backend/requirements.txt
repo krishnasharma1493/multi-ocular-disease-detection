@@ -1,0 +1,12 @@
+fastapi[standard]
+sqlmodel
+pydantic-settings
+pyjwt
+torch
+torchvision
+albumentations
+opencv-python
+pillow
+numpy
+pytest
+httpx

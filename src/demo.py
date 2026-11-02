@@ -1,122 +1,31 @@
-"""RetinaScreen web app (with the classic Gradio UI at /gradio): upload a fundus photo and screen for:
-1. Myopia
-2. Cataract
-3. Glaucoma
-4. Diabetic Retinopathy
+"""Start the RetinaScreen web app (FastAPI backend + built React frontend) on one port.
 
-    .venv/bin/python src/demo.py                       # http://127.0.0.1:7860
-    .venv/bin/python src/demo.py --checkpoint outputs/best_efficientnet_b0.pth --share
+    python src/demo.py                 # http://127.0.0.1:7860
+    python src/demo.py --port 8000
+
+Equivalent to `cd backend && uvicorn app.main:app --port 7860`. Needs backend/.env
+(copy backend/.env.example) and a built frontend (`cd frontend && npm run build`).
 """
 import argparse
 import os
 import sys
 
-import gradio as gr
-import torch
-
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(ROOT)
-from src.dataset import to_tensor
-from src.labels import DISEASES, LABELS
-from src.model import get_device, load_checkpoint
-
-NAMES = dict(zip(LABELS, DISEASES))
+BACKEND = os.path.join(ROOT, 'backend')
 
 
-def _resolve(path):
-    return path if os.path.isabs(path) else os.path.join(ROOT, path)
-
-
-def load_model(checkpoint_path, device='cpu'):
-    """Return (model, checkpoint info) for the 4-disease classifier."""
-    path = _resolve(checkpoint_path)
-    if not os.path.exists(path):
-        sys.exit(f'No checkpoint at {path}. Train one with `python main.py`.')
-    raw = torch.load(path, map_location='cpu', weights_only=False)
-    if 'state_dict' not in raw:
-        sys.exit(f'{path} is a legacy checkpoint with non-target classes. '
-                 'Train a new model with `python main.py` to target the 4 diseases.')
-    return load_checkpoint(path, device)
-
-
-@torch.no_grad()
-def predict(image, model, checkpoint, device='cpu'):
-    """Return ({disease: probability}, {disease: details}) for one image."""
-    if image is None:
-        raise gr.Error('Upload a fundus image first.')
-    probs = torch.sigmoid(model(to_tensor(image, checkpoint['img_size']).to(device)))[0].cpu()
-
-    probabilities, results = {}, {}
-    for label, prob, threshold in zip(checkpoint['labels'], probs.tolist(), checkpoint['thresholds']):
-        disease = NAMES.get(label, label)
-        probabilities[disease] = prob
-        results[disease] = {
-            'Prediction': 'Positive' if prob >= threshold else 'Negative',
-            'Confidence': f'{prob:.2%}',
-            'Threshold': f'{threshold:.2%}',
-        }
-    return probabilities, results
-
-
-def summarize(results):
-    found = [disease for disease, r in results.items() if r['Prediction'] == 'Positive']
-    screened = f'Screened for: {", ".join(results)}. Other conditions are not checked.'
-    if not found:
-        return f'**None of the screened diseases detected.**\n\n{screened}'
-    return '**Possible findings:** ' + ', '.join(found) + f'\n\n{screened}'
-
-
-def build_interface(model, checkpoint, device):
-    diseases = ', '.join(NAMES.get(label, label) for label in checkpoint['labels'])
-    examples_dir = os.path.join(ROOT, 'assets', 'examples')
-    examples = sorted(os.path.join(examples_dir, f) for f in os.listdir(examples_dir)
-                       if f.lower().endswith(('.jpg', '.jpeg', '.png'))) if os.path.isdir(examples_dir) else None
-
-    def run(image):
-        probabilities, results = predict(image, model, checkpoint, device)
-        return summarize(results), probabilities, results
-
-    description = (f'Upload a colour fundus (retina) photograph to screen for: {diseases}. '
-                   'A disease is marked Positive when its probability passes the threshold tuned on '
-                   'validation data.')
-    return gr.Interface(
-        fn=run,
-        inputs=gr.Image(type='pil', label='Upload Fundus Image'),
-        outputs=[gr.Markdown(label='Summary'),
-                 gr.Label(label='Probability per disease', num_top_classes=len(checkpoint['labels'])),
-                 gr.JSON(label='Prediction Results')],
-        title='Eye Disease Detection System',
-        description=description,
-        article='Research prototype, not a medical device. Do not use for diagnosis.',
-        examples=[[e] for e in examples] if examples else None,
-        flagging_mode='never',
-    )
-
-
-def launch_demo(checkpoint_path='outputs/best_efficientnet_b0.pth', share=False, port=7860, classic=False):
-    """Serve the RetinaScreen web app (classic Gradio UI at /gradio).
-
-    --share and --classic launch only the classic Gradio interface, since public
-    gradio.live links are a Gradio feature.
-    """
-    device = get_device()
-    model, checkpoint = load_model(checkpoint_path, device)
-    interface = build_interface(model, checkpoint, device)
-    if share or classic:
-        interface.launch(share=share, server_port=port)
-        return
+def launch_demo(port=7860, host='127.0.0.1'):
     import uvicorn
-    from src.webapp import create_app
-    app = create_app(model, checkpoint, device, _resolve(checkpoint_path), gradio_blocks=interface)
-    print(f'RetinaScreen running on http://127.0.0.1:{port}  (classic Gradio UI: /gradio)')
-    uvicorn.run(app, host='127.0.0.1', port=port, log_level='warning')
+
+    os.chdir(BACKEND)
+    if BACKEND not in sys.path:
+        sys.path.insert(0, BACKEND)
+    uvicorn.run('app.main:app', host=host, port=port)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--checkpoint', default='outputs/best_efficientnet_b0.pth')
-    parser.add_argument('--share', action='store_true', help='Create a public gradio.live link (classic UI)')
-    parser.add_argument('--classic', action='store_true', help='Serve only the classic Gradio UI')
     parser.add_argument('--port', type=int, default=7860)
+    parser.add_argument('--host', default='127.0.0.1')
     args = parser.parse_args()
-    launch_demo(args.checkpoint, share=args.share, port=args.port, classic=args.classic)
+    launch_demo(args.port, args.host)
