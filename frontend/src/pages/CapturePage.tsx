@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +19,15 @@ type Form = z.infer<typeof schema>;
 type CaptureError = { code: string; head: string; body: string; data: string; blocking: boolean; rejected?: boolean };
 
 const MAX_BYTES = env.VITE_MAX_UPLOAD_MB * 1024 * 1024;
+const PASTE_KEYS = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘V' : 'Ctrl+V';
+
+/** Clipboard images arrive as "image.png" (or unnamed); give them a readable, unique name. */
+function namedPaste(blob: Blob, name?: string): File {
+  const ext = blob.type === 'image/jpeg' ? 'jpg' : (blob.type.split('/')[1] || 'png');
+  const generic = !name || /^image\.(png|jpe?g)$/i.test(name);
+  const stamp = new Date().toTimeString().slice(0, 8).replace(/:/g, '');
+  return new File([blob], generic ? `pasted-${stamp}.${ext}` : name!, { type: blob.type });
+}
 
 export function CapturePage() {
   const navigate = useNavigate();
@@ -34,6 +43,8 @@ export function CapturePage() {
   const [createdId, setCreatedId] = useState<number | null>(null); // reused on retry: never a duplicate screening
   const doneRef = useRef(false); // set synchronously before the app's own navigation to the scan
   const [small, setSmall] = useState(() => window.innerWidth < 760);
+  const [pasteMsg, setPasteMsg] = useState<string | null>(null);
+  const placeRef = useRef<(f: File | undefined) => void>(() => undefined);
   const fileIn = useRef<HTMLInputElement>(null);
   const camIn = useRef<HTMLInputElement>(null);
   const h = useFocusHeading<HTMLHeadingElement>();
@@ -69,6 +80,7 @@ export function CapturePage() {
   function place(f: File | undefined) {
     if (!f || busy) return;
     setErr(null);
+    setPasteMsg(null);
     const ext = (f.name.split('.').pop() || '').toUpperCase();
     const okType = ['image/jpeg', 'image/png'].includes(f.type) || (!f.type && ['JPG', 'JPEG', 'PNG'].includes(ext));
     if (!okType) {
@@ -87,7 +99,40 @@ export function CapturePage() {
     setCapTime(new Date());
   }
 
+  placeRef.current = place;
   const onDrop = (e: DragEvent) => { e.preventDefault(); setOver(false); place(e.dataTransfer.files[0]); };
+
+  // Paste anywhere on the page (⌘V / Ctrl+V). Text pastes into the form fields are left alone.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const item = [...(e.clipboardData?.items ?? [])].find((i) => i.kind === 'file');
+      const blob = item?.getAsFile();
+      if (!blob) return;
+      e.preventDefault();
+      placeRef.current(namedPaste(blob, blob.name));
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, []);
+
+  // "Paste image" button: reads the clipboard directly (needs the browser's clipboard permission)
+  const pasteFromClipboard = async () => {
+    setPasteMsg(null);
+    if (!navigator.clipboard?.read) { setPasteMsg(`This browser can't read the clipboard from a button. Press ${PASTE_KEYS} instead.`); return; }
+    try {
+      for (const item of await navigator.clipboard.read()) {
+        const type = item.types.find((t) => t.startsWith('image/'));
+        if (type) { place(namedPaste(await item.getType(type))); return; }
+      }
+      setPasteMsg('No image on the clipboard. Copy a fundus photo first, then paste.');
+    } catch {
+      setPasteMsg(`Clipboard access was blocked. Press ${PASTE_KEYS} to paste instead.`);
+    }
+  };
+  // Labels open the native file picker without a scripted click; Enter/Space work like a button
+  const labelKey = (e: KeyboardEvent<HTMLLabelElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.currentTarget.control as HTMLInputElement | null)?.click(); }
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     if (!file || busy) return;
@@ -144,14 +189,16 @@ export function CapturePage() {
   const pctDone = progress ? Math.min(1, progress.loaded / Math.max(progress.total, 1)) : 0;
   const pick = (
     <div className="file-btns">
-      <button type="button" className="btn" onClick={() => fileIn.current?.click()} disabled={busy}>{file ? 'Replace photo' : 'Browse files'}</button>
-      {small && <button type="button" className="btn" onClick={() => camIn.current?.click()} disabled={busy}>Take photo</button>}
+      <label htmlFor="photo-file" className={`btn${busy ? ' is-disabled' : ''}`} role="button" tabIndex={busy ? -1 : 0} aria-disabled={busy} onKeyDown={labelKey}>{file ? 'Replace photo' : 'Browse files'}</label>
+      <button type="button" className="btn" onClick={pasteFromClipboard} disabled={busy}>Paste image</button>
+      {small && <label htmlFor="photo-camera" className={`btn${busy ? ' is-disabled' : ''}`} role="button" tabIndex={busy ? -1 : 0} aria-disabled={busy} onKeyDown={labelKey}>Take photo</label>}
     </div>
   );
+  const pasteNote = <span className="paste-note" aria-live="polite">{pasteMsg ?? `or drag it onto the lens, or paste with ${PASTE_KEYS}`}</span>;
 
   let under;
   if (!file) {
-    under = <div className="drop-text"><span className="big">Place fundus photo here</span><span className="small">(JPG / PNG, max {env.VITE_MAX_UPLOAD_MB} MB)</span><div style={{ marginTop: 8 }}>{pick}</div></div>;
+    under = <div className="drop-text"><span className="big">Place fundus photo here</span><span className="small">(JPG / PNG, max {env.VITE_MAX_UPLOAD_MB} MB)</span><div style={{ marginTop: 8 }}>{pick}</div>{pasteNote}</div>;
   } else if (progress) {
     const secs = (performance.now() - progress.t0) / 1000;
     const rate = progress.loaded / Math.max(secs, 0.05);
@@ -163,9 +210,9 @@ export function CapturePage() {
       </div>
     );
   } else if (rejected) {
-    under = <div className="drop-file"><span className="f">{file.name} · {fileSize(file.size)}</span><span className="s" style={{ color: 'var(--vermilion-deep)', fontWeight: 600 }}>▲ REJECTED · RETAKE OR REPLACE</span>{pick}</div>;
+    under = <div className="drop-file"><span className="f">{file.name} · {fileSize(file.size)}</span><span className="s" style={{ color: 'var(--vermilion-deep)', fontWeight: 600 }}>▲ REJECTED · RETAKE OR REPLACE</span>{pick}{pasteNote}</div>;
   } else {
-    under = <div className="drop-file"><span className="f">{file.name} · {fileSize(file.size)}</span><span className="s">PHOTO PLACED</span>{pick}</div>;
+    under = <div className="drop-file"><span className="f">{file.name} · {fileSize(file.size)}</span><span className="s">PHOTO PLACED</span>{pick}{pasteNote}</div>;
   }
 
   return (
@@ -176,13 +223,15 @@ export function CapturePage() {
       </div>
       <div className="capture-grid">
         <div className="drop" onDragEnter={(e) => { e.preventDefault(); setOver(true); }} onDragOver={(e) => e.preventDefault()} onDragLeave={() => setOver(false)} onDrop={onDrop}>
+          <label htmlFor="photo-file" className={`drop-target${busy ? ' is-disabled' : ''}`} title={busy ? undefined : 'Choose a fundus photo'}>
           <Lens className={`drop-lens${over ? ' over' : ''}`} size={lensSize} state={progress ? 'uploading' : file && !rejected ? 'photo' : file ? 'photo' : 'empty'}
             photo={url} eye={eye === 'left' ? 'L' : 'R'} progress={pctDone}
             label={progress ? `Uploading ${Math.round(pctDone * 100)} percent` : file ? `Photo placed: ${file.name}` : 'Empty lens. Place a fundus photo here.'} />
+          </label>
           <div aria-live="polite">{under}</div>
-          <input ref={fileIn} type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" className="sr-only" tabIndex={-1} aria-hidden="true"
+          <input ref={fileIn} id="photo-file" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" className="sr-only" tabIndex={-1} disabled={busy}
             onChange={(e) => { place(e.target.files?.[0]); e.target.value = ''; }} />
-          <input ref={camIn} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden="true"
+          <input ref={camIn} id="photo-camera" type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={busy}
             onChange={(e) => { place(e.target.files?.[0]); e.target.value = ''; }} />
         </div>
         <div className="callout-col">

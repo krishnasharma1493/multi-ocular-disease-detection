@@ -524,3 +524,12 @@ h1, h2, p { margin: 0; }
   .seg button:nth-last-child(-n+2) { border-bottom: 0; }
   .filters .search { width: 100%; }
 }
+
+/* capture: native file pickers and paste */
+label.btn { cursor: pointer; user-select: none; }
+label.btn.is-disabled { border-color: var(--disabled-rule); color: var(--disabled); cursor: not-allowed; pointer-events: none; }
+.drop-target { display: block; border-radius: 50%; cursor: pointer; }
+.drop-target.is-disabled { cursor: default; pointer-events: none; }
+.drop-target:hover .drop-lens { opacity: 0.92; }
+.file-btns { flex-wrap: wrap; justify-content: center; }
+.paste-note { font: 500 11px/1.5 var(--mono); letter-spacing: 0.06em; color: var(--graphite); text-align: center; max-width: 420px; }
