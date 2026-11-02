@@ -31,7 +31,6 @@ export const dayStamp = (d: Date) => `${pad(d.getDate())} ${MONTHS[d.getMonth()]
 export const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 export const fileSize = (bytes: number) => (bytes < 102400 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 export const pct = (x: number, digits = 1) => `${(x * 100).toFixed(digits)}%`;
-export const pct0 = (x: number) => `${Math.round(x * 100)}%`;
 export const num2 = (x: number | null | undefined) => (x == null ? '—' : x.toFixed(2));
 
 export const eyeCode = (eye: Eye): 'L' | 'R' | null => (eye === 'left' ? 'L' : eye === 'right' ? 'R' : null);
@@ -61,6 +60,11 @@ export function orderedFindings(findings: Finding[]): Finding[] {
   return DISEASES.map((d) => findings.find((f) => f.disease === d)).filter((f): f is Finding => !!f);
 }
 
+/** The same findings for the readings list: highest probability first (ties keep the quadrant order). */
+export function byProbability(findings: Finding[]): Finding[] {
+  return orderedFindings(findings).sort((a, b) => b.probability - a.probability);
+}
+
 export function summarize(s: Screening): Summary {
   const created = parseUtc(s.created_at);
   const findings = s.result ? orderedFindings(s.result.findings) : [];
@@ -75,7 +79,7 @@ export function summarize(s: Screening): Summary {
     .sort((a, b) => (b.probability - b.threshold) - (a.probability - a.threshold))[0] ?? null;
   const nearest = rows.slice().sort((a, b) => (b.probability / b.threshold) - (a.probability / a.threshold))[0];
   const status: Status = positives.length ? 'possible' : near ? 'review' : 'clear';
-  const tag = (r: Finding) => `${(SHORT[r.disease] ?? r.disease).toUpperCase()} ${pct(r.probability)} · NOTCH ${pct0(r.threshold)}`;
+  const tag = (r: Finding) => `${(SHORT[r.disease] ?? r.disease).toUpperCase()} ${pct(r.probability)} · THRESHOLD ${pct(r.threshold)}`;
   let verdict: string, sub: string;
   if (primary) {
     verdict = 'Possible: ' + positives.map((r) => sentence(r.disease)).join(', ');

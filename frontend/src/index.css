@@ -95,7 +95,8 @@ h1, h2, p { margin: 0; }
 .reading-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .reading-top .name { font: 600 15px/1.2 var(--sans); }
 .reading-top .res { font: 600 11px/1 var(--mono); letter-spacing: 0.1em; white-space: nowrap; }
-.reading-nums { display: flex; gap: 18px; font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.reading-nums { display: flex; align-items: baseline; gap: 18px; font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.reading-nums .prob { font: 600 20px/1 var(--mono); font-variant-numeric: tabular-nums; }
 .scope { border: 1px solid var(--ink); padding: 14px 16px; font: 500 13.5px/1.5 var(--sans); }
 
 /* log */

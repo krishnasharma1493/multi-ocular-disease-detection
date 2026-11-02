@@ -4,7 +4,7 @@ import { photoVersion, useDeleteScreening, useScreening, useScreeningImage, useU
 import { useCreateReview, useReviews } from '../features/reviews/api';
 import { apiError, apiErrorMessage, parseUtc, type Eye, type ReviewDecision, type Screening } from '../lib/api/types';
 import { env } from '../lib/env';
-import { COLORS, TREATMENT, dayStamp, eyeCode, eyeLong, eyeWord, fileSize, hhmm, pct, pct0, sentence, summarize } from '../lib/format';
+import { COLORS, TREATMENT, dayStamp, eyeCode, eyeLong, eyeWord, fileSize, hhmm, pct, sentence, summarize, byProbability } from '../lib/format';
 import { EyeDots, Lens } from '../components/Lens';
 import { Loading, QueryError, useFocusHeading } from '../components/States';
 
@@ -186,8 +186,8 @@ export function DetailPage() {
   const disagree = reviews.data?.[0]?.decision === 'disagree';
   const verdict = !s.result ? (s.has_image ? 'Awaiting analysis.' : 'No photo yet.') : pos ? `Possible: ${m.positives.map((r) => sentence(r.disease)).join(', ')}.` : 'Not detected.';
   const verdictSub = !s.result ? (s.has_image ? 'RUN THE ANALYSIS TO SCREEN FOUR DISEASES' : 'UPLOAD A FUNDUS PHOTO FIRST')
-    : pos ? `${m.positives.length} OF 4 PAST NOTCH · ${m.primary!.disease.toUpperCase()} ${pct(m.primary!.probability)} vs ${pct0(m.primary!.threshold)}`
-    : `0 OF 4 PAST NOTCH · NEAREST: ${m.nearest!.disease.toUpperCase()} ${pct(m.nearest!.probability)} vs ${pct0(m.nearest!.threshold)}`;
+    : pos ? `${m.positives.length} OF 4 PAST THRESHOLD · ${m.primary!.disease.toUpperCase()} ${pct(m.primary!.probability)} vs ${pct(m.primary!.threshold)}`
+    : `0 OF 4 PAST THRESHOLD · NEAREST: ${m.nearest!.disease.toUpperCase()} ${pct(m.nearest!.probability)} vs ${pct(m.nearest!.threshold)}`;
   const statusText = !s.result ? '· NOT ANALYZED' : (pos ? '▲ POSSIBLE' : '○ NOT DETECTED') + (disagree ? ' · ✕ REVIEWER: DISAGREE' : '') + (s.status === 'reviewed' && !disagree ? ' · ✓ REVIEWED' : '');
   const statusColor = !s.result ? COLORS.MUTE : pos ? COLORS.VT : disagree ? COLORS.INK : COLORS.G;
   const img = s.image;
@@ -200,7 +200,7 @@ export function DetailPage() {
     ...(s.notes ? [['NOTES', s.notes] as [string, string]] : []),
   ];
   const lensLabel = s.result
-    ? 'Lens readout. ' + m.rows.map((r) => `${r.disease} ${pct(r.probability)}, notch ${pct0(r.threshold)}, ${r.positive ? 'positive' : 'not detected'}`).join('; ')
+    ? 'Lens readout. ' + m.rows.map((r) => `${r.disease} ${pct(r.probability)}, threshold ${pct(r.threshold)}, ${r.positive ? 'positive' : 'not detected'}`).join('; ')
     : s.has_image ? `Fundus photo, ${eyeWord(s.eye)} eye, ${s.patient_ref}` : 'Empty lens: no photo uploaded';
 
   const replacePhoto = async (f: File | undefined) => {
@@ -267,12 +267,12 @@ export function DetailPage() {
           </div>
         </div>
         <section className="readings-col" aria-label="Readings">
-          <div className="readings-head"><span>READINGS</span><span>PROB · NOTCH</span></div>
-          {s.result ? m.rows.map((r) => (
+          <div className="readings-head"><span>READINGS</span><span>PROB · THRESHOLD</span></div>
+          {s.result ? byProbability(s.result.findings).map((r) => (
             <div key={r.code} className="reading" style={{ padding: '16px 0 18px' }}>
               <div className="reading-top"><span className="name">{sentence(r.disease)}</span><span className={`res ${r.positive ? 'c-pos' : 'c-clr'}`}>{r.positive ? '▲ POSITIVE' : '○ NOT DETECTED'}</span></div>
-              <div className="reading-nums"><span>{pct(r.probability)}</span><span className="mute">notch {pct0(r.threshold)}</span></div>
-              <meter className="sr-only" min={0} max={1} value={r.probability} aria-label={`${r.disease} probability ${pct(r.probability)}, notch ${pct0(r.threshold)}`} />
+              <div className="reading-nums"><span className="prob">{pct(r.probability)}</span><span className="mute">threshold {pct(r.threshold)}</span></div>
+              <meter className="sr-only" min={0} max={1} value={r.probability} aria-label={`${r.disease} probability ${pct(r.probability)}, threshold ${pct(r.threshold)}`} />
               <div className="bar" aria-hidden="true">
                 <div className="scale" /><div className="base" />
                 <div className="fill" style={{ width: `${(r.probability * 100).toFixed(2)}%`, background: r.positive ? COLORS.V : COLORS.INK }} />

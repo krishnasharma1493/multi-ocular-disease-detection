@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { photoVersion, useAnalyzeScreening, useScreening, useScreeningImage } from '../features/screenings/api';
 import { apiError, apiErrorMessage, isOffline, type Screening, type ScreeningResult } from '../lib/api/types';
-import { COLORS, DISEASES, esc, eyeCode, eyeWord, orderedFindings, pct, pct0, reducedMotion } from '../lib/format';
+import { COLORS, DISEASES, esc, eyeCode, eyeWord, orderedFindings, byProbability, pct, reducedMotion } from '../lib/format';
 import { lensPhotoStyle, lensSVG } from '../lib/lens';
 import { EyeDots } from '../components/Lens';
 import { Loading, QueryError, useFocusHeading } from '../components/States';
@@ -122,7 +122,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
   const regionRows = explain.kind === 'map' && explain.grid ? regionsOf(explain.grid).map((r, i) => ({ n: i + 1, label: i === 0 ? 'Strongest region' : 'Second region', share: `${Math.round(r.share * 100)}% of weight` })) : [];
   const imgSize = 384;
   const verdict = posNames.length ? `Possible: ${posNames.join(', ')}.` : 'Not detected.';
-  const verdictSub = primaryF ? `${posNames.length} OF 4 PAST THRESHOLD · ${primaryF.disease.toUpperCase()} ${pct(primaryF.probability)} vs ${pct0(primaryF.threshold)}` : '0 OF 4 PAST THRESHOLD';
+  const verdictSub = primaryF ? `${posNames.length} OF 4 PAST THRESHOLD · ${primaryF.disease.toUpperCase()} ${pct(primaryF.probability)} vs ${pct(primaryF.threshold)}` : '0 OF 4 PAST THRESHOLD';
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
@@ -219,7 +219,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
   }, [result, narrow, replayKey]);
 
   const lensAria = result
-    ? `Lens readout for ${screening.patient_ref}, ${eyeW} eye. ` + findings.map((f) => `${f.disease} ${pct(f.probability)}, threshold ${pct0(f.threshold)}, ${f.positive ? 'positive' : 'not detected'}`).join('; ') + '.'
+    ? `Lens readout for ${screening.patient_ref}, ${eyeW} eye. ` + findings.map((f) => `${f.disease} ${pct(f.probability)}, threshold ${pct(f.threshold)}, ${f.positive ? 'positive' : 'not detected'}`).join('; ') + '.'
     : `Analyzing ${screening.patient_ref}, ${eyeW} eye.`;
   const offline = analyzeError ? apiError(analyzeError)?.code === 'MODEL_OFFLINE' : false;
 
@@ -270,10 +270,10 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
           </div>
           <div className="read-col" ref={readRef} style={{ display: 'none' }} aria-hidden={!final}>
             <div className="readings-head"><span>READINGS</span><span>PROB · THRESHOLD</span></div>
-            {findings.map((f) => (
+            {byProbability(findings).map((f) => (
               <div key={f.code} className="reading">
                 <div className="reading-top"><span className="name">{f.disease}</span><span className={`res ${f.positive ? 'c-pos' : 'c-clr'}`}>{f.positive ? '▲ POSITIVE' : '○ NOT DETECTED'}</span></div>
-                <div className="reading-nums"><span>{pct(f.probability)}</span><span className="mute">threshold {pct0(f.threshold)}</span></div>
+                <div className="reading-nums"><span className="prob">{pct(f.probability)}</span><span className="mute">threshold {pct(f.threshold)}</span></div>
               </div>
             ))}
             {explain.kind === 'map' && (

@@ -21,7 +21,7 @@ function Gauge({ d }: { d: DiseaseCard }) {
   const n = d.test_roc_auc != null ? pt(80, ang(d.test_roc_auc)) : null;
   const ap = d.test_ap != null ? [pt(R + 3, ang(d.test_ap)), pt(R + 13, ang(d.test_ap) - 3.5), pt(R + 13, ang(d.test_ap) + 3.5)] : null;
   const figs: [string, string][] = [
-    ['AUC', num2(d.test_roc_auc)], ['AP', num2(d.test_ap)], ['THRESHOLD', d.threshold == null ? '—' : `${Math.round(d.threshold * 100)}%`],
+    ['AUC', num2(d.test_roc_auc)], ['AP', num2(d.test_ap)], ['THRESHOLD', d.threshold == null ? '—' : `${(d.threshold * 100).toFixed(1)}%`],
     ['PRECISION', num2(d.test_precision)], ['RECALL', num2(d.test_recall)], ['F1', num2(d.test_f1)],
     ['POSITIVES', d.test_positives == null ? '—' : String(d.test_positives)],
   ];
