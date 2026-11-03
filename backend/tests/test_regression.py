@@ -20,10 +20,12 @@ from app.core.config import BACKEND_DIR, settings  # noqa: E402
 GOLDEN = json.loads((Path(__file__).parent / "golden" / "golden.json").read_text())
 IMAGES = BACKEND_DIR / "seed_data" / "images"
 REPO = BACKEND_DIR.parent
-# Regression floors (about 5 points under the current model's ODIR validation sensitivity:
-# M 0.960, C 0.967, G 0.519, D 0.710). Raise them when a better model is promoted; never lower them
-# without a written reason. The goals for a new model are in src/calibration.py TARGETS.
-RECALL_FLOORS = {"M": 0.88, "C": 0.90, "G": 0.44, "D": 0.66}
+# Regression floors, about 5 points under the current model's ODIR validation sensitivity
+# (run 20261103-1108-b0-512-ft: M 0.920, C 0.900, G 0.704, D 0.747). Glaucoma and DR floors were raised
+# with this model. M and C stay as they were: the new model's sensitivity-first thresholds sit at those
+# levels. Raise them when a better model is promoted; never lower them without a written reason. The goals
+# for a new model are in src/calibration.py TARGETS.
+RECALL_FLOORS = {"M": 0.88, "C": 0.90, "G": 0.65, "D": 0.70}
 
 pytestmark = pytest.mark.skipif(not Path(settings.model_checkpoint_path).is_file(), reason="no checkpoint")
 

@@ -84,7 +84,9 @@ def test_model_card_and_admin_reset(client, auth, judge):
     assert card["live"] is False and len(card["limitations"]) == 5
     metrics = Path(BACKEND_DIR.parent / "outputs" / "metrics.json")
     if metrics.exists():
-        assert card["test_images"] == 871
+        import json
+
+        assert card["test_images"] == json.loads(metrics.read_text())["test"]["num_images"]
     assert client.post(f"{API}/demo/reset", headers=judge).status_code == 403
     assert client.post(f"{API}/demo/reset", headers=auth).status_code == 200
     assert client.get(f"{API}/nope", headers=auth).json()["error"]["code"] == "NOT_FOUND"

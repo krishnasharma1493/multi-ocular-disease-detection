@@ -81,7 +81,7 @@ Open `http://127.0.0.1:7860` and sign in as `demo@example.com` with `DEMO_PASSWO
 
 ## Results
 
-Held-out test set (871 eyes from patients not seen in training). Generated from `outputs/metrics.json` with:
+Held-out test set (959 eyes from patients not seen in training). Thresholds are sensitivity-first and predictions are averaged over each photo and its mirror, so precision is lower than recall by design. Generated from `outputs/metrics.json` with:
 
 ```bash
 python -c "import json; t=json.load(open('outputs/metrics.json'))['test']; [print(d, *(round(m[k],3) for k in ('precision','recall','f1','ap','roc_auc')), m['support']) for d,m in t['per_class'].items()]"
@@ -89,26 +89,26 @@ python -c "import json; t=json.load(open('outputs/metrics.json'))['test']; [prin
 
 | Disease | Precision | Recall | F1 | AP | ROC-AUC | Positives |
 |---|---|---|---|---|---|---|
-| Myopia | 0.957 | 0.947 | 0.952 | 0.994 | 0.999 | 95 |
-| Cataract | 0.844 | 0.864 | 0.854 | 0.908 | 0.951 | 44 |
-| Glaucoma | 0.869 | 0.863 | 0.866 | 0.927 | 0.957 | 131 |
-| Diabetic Retinopathy | 0.758 | 0.684 | 0.719 | 0.838 | 0.874 | 174 |
+| Myopia | 0.988 | 0.853 | 0.915 | 0.987 | 0.998 | 95 |
+| Cataract | 0.679 | 0.864 | 0.760 | 0.906 | 0.978 | 44 |
+| Glaucoma | 0.744 | 0.931 | 0.827 | 0.938 | 0.967 | 131 |
+| Diabetic Retinopathy | 0.650 | 0.747 | 0.695 | 0.829 | 0.876 | 174 |
 
 Everyday ODIR photos only (`test.by_source[<disease>]["ODIR"]`):
 
 | Disease | AP | ROC-AUC |
 |---|---|---|
-| Myopia | 0.973 | 0.998 |
-| Cataract | 0.843 | 0.926 |
-| Glaucoma | 0.386 | 0.809 |
-| Diabetic Retinopathy | 0.826 | 0.866 |
+| Myopia | 0.954 | 0.997 |
+| Cataract | 0.832 | 0.967 |
+| Glaucoma | 0.433 | 0.850 |
+| Diabetic Retinopathy | 0.814 | 0.868 |
 
 ## Limitations
 
 - Research prototype, not a medical device and not clinically validated; confirm every result with an ophthalmologist.
 - Screens only these four diseases; photos showing other conditions may be flagged as one of them.
 - "Myopia" means pathological myopia visible on the photo; mild myopia usually looks normal.
-- Glaucoma is weak on everyday camp photos (ODIR-only AP 0.39 versus 0.93 overall).
+- Glaucoma is weak on everyday camp photos (ODIR-only AP 0.43 versus 0.94 overall).
 - Performance on other cameras and populations is unknown.
 
 ## Acknowledgements
