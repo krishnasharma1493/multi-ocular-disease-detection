@@ -7,7 +7,7 @@ from sklearn.metrics import (average_precision_score, confusion_matrix, precisio
 from tqdm import tqdm
 
 from .labels import DISEASES, UNKNOWN
-from .model import calibrated_sigmoid
+from .model import calibrated_sigmoid, forward_logits
 
 
 class MaskedBCEWithLogitsLoss(torch.nn.Module):
@@ -86,13 +86,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
 
 @torch.no_grad()
-def predict_logits(model, loader, device, criterion=None):
+def predict_logits(model, loader, device, criterion=None, tta=False):
     """Return (logits, labels, mean loss) as numpy arrays."""
     model.eval()
     all_logits, all_labels, total_loss = [], [], 0.0
     for images, labels in tqdm(loader, desc='Predicting', leave=False):
         images, labels = images.to(device), labels.to(device)
-        logits = model(images)
+        logits = forward_logits(model, images, tta)
         if criterion is not None:
             total_loss += criterion(logits, labels).item() * len(images)
         all_logits.append(logits.float().cpu())
@@ -101,9 +101,9 @@ def predict_logits(model, loader, device, criterion=None):
             total_loss / len(loader.dataset))
 
 
-def predict(model, loader, device, criterion=None, temperature=None):
+def predict(model, loader, device, criterion=None, temperature=None, tta=False):
     """Return (probabilities, labels, mean loss) as numpy arrays (calibrated when a temperature is given)."""
-    logits, labels, loss = predict_logits(model, loader, device, criterion)
+    logits, labels, loss = predict_logits(model, loader, device, criterion, tta)
     return calibrated_sigmoid(torch.from_numpy(logits), temperature).numpy(), labels, loss
 
 

@@ -10,7 +10,7 @@ Fine-tune (see docs/RETRAINING.md):
     python main.py prepare --other-disease-negatives --keep-splits-from data/labels.csv --out data/labels_v2.csv
     python main.py train --name b0-512-ft --labels-csv data/labels_v2.csv \
         --init-checkpoint outputs/best_efficientnet_b0.pth --img-size 512 --epochs 8 --lr 1e-4 \
-        --scheduler cosine --amp --strong-aug --balance-sources 0.5 --select-on odir --thresholds targets --calibrate
+        --scheduler cosine --amp --strong-aug --balance-sources 0.5 --select-on odir --thresholds targets --calibrate --tta
 """
 import argparse
 import os
@@ -42,6 +42,8 @@ def add_train_args(parser):
                         help='Validation images used to pick the best epoch')
     parser.add_argument('--thresholds', default='f1', choices=['f1', 'targets'],
                         help='f1: max F1 on all validation; targets: sensitivity targets on ODIR validation')
+    parser.add_argument('--tta', action='store_true',
+                        help='Average each prediction over the image and its mirror (stored in the checkpoint)')
     parser.add_argument('--calibrate', action='store_true',
                         help='Fit per-class temperature scaling on validation (ODIR only with --thresholds targets)')
 

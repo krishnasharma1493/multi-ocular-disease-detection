@@ -38,7 +38,11 @@ def test_matches_evaluation_pipeline(screener):
         image = Image.open(IMAGES / name).convert("RGB")
         x = transform(image=crop_fundus(image))["image"].unsqueeze(0).to(screener.device)
         with torch.no_grad():
-            expected = torch.sigmoid(screener.model(x))[0].cpu().tolist()
+            # Exactly what evaluation does: the checkpoint's own flip-averaging and temperature scaling
+            from src.model import calibrated_sigmoid, forward_logits
+
+            logits = forward_logits(screener.model, x, screener.checkpoint.get("tta", False))
+            expected = calibrated_sigmoid(logits, screener.checkpoint.get("temperature"))[0].cpu().tolist()
         assert screener.predict(image) == pytest.approx(expected, abs=1e-5)
         assert screener.predict(image) == pytest.approx(expected, abs=1e-5)  # deterministic: no augmentation
 

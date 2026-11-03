@@ -46,6 +46,7 @@ class ModelInfo(SQLModel):
     labels: list[str] = []
     thresholds: list[float] = []          # the decision thresholds used for this result
     temperature: list[float] | None = None  # per-class calibration, None = uncalibrated
+    tta: bool = False                     # predictions averaged over the photo and its mirror
 
 
 class ScreeningResult(SQLModel):

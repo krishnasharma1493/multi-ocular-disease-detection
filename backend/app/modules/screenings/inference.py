@@ -71,6 +71,10 @@ class Screener:
         return [float(t) for t in self.checkpoint["thresholds"]]
 
     @property
+    def tta(self) -> bool:
+        return bool(self.checkpoint.get("tta", False))
+
+    @property
     def temperature(self) -> list[float] | None:
         t = self.checkpoint.get("temperature")
         return [float(x) for x in t] if t is not None else None
@@ -80,7 +84,7 @@ class Screener:
         meta = self.checkpoint.get("meta") or {}
         return {"run_id": meta.get("run_id"), "checkpoint_sha256": self.checkpoint_sha256,
                 "model_name": self.checkpoint["model_name"], "img_size": self.checkpoint["img_size"],
-                "labels": self.labels, "thresholds": self.thresholds, "temperature": self.temperature}
+                "labels": self.labels, "thresholds": self.thresholds, "temperature": self.temperature, "tta": self.tta}
 
     def _tensor(self, image: Image.Image):
         from src.dataset import to_tensor  # crop_fundus -> resize -> ImageNet normalise, exactly like validation
@@ -92,11 +96,12 @@ class Screener:
         has a temperature (exactly like `src.pipeline.run_evaluation`)."""
         import torch
 
-        from src.model import calibrated_sigmoid
+        from src.model import calibrated_sigmoid, forward_logits
 
         tensor = self._tensor(image)
         with self._lock, torch.no_grad():
-            return calibrated_sigmoid(self.model(tensor), self.temperature)[0].cpu().tolist()
+            logits = forward_logits(self.model, tensor, self.tta)  # same flip-averaging the thresholds were fitted with
+            return calibrated_sigmoid(logits, self.temperature)[0].cpu().tolist()
 
     def explain(self, image: Image.Image, class_indices: list[int]) -> dict[int, list[list[float]] | None]:
         """Grad-CAM grid (values 0-1) per requested class, or None when the map is empty."""

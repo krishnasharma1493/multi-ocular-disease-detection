@@ -185,7 +185,7 @@ def run_training(args):
         plot_history(history, os.path.join(run_dir, f'{args.model}_training_history.png'))
 
         # Calibration and thresholds use validation data only, then go unchanged to the test set
-        val_logits, val_labels, _ = predict_logits(model, val_loader, device)
+        val_logits, val_labels, _ = predict_logits(model, val_loader, device, tta=args.tta)
         val_sources = splits['val']['source'].values
         fit_mask = val_odir if args.thresholds == 'targets' else np.ones(len(val_labels), bool)
         temperature = fit_temperature(val_logits[fit_mask], val_labels[fit_mask]) if args.calibrate else None
@@ -219,7 +219,7 @@ def run_training(args):
                 'threshold_rule': args.thresholds, 'threshold_report': threshold_report,
                 'calibration': calibration, 'targets': TARGETS, 'metrics': summary}
         save_checkpoint(os.path.join(run_dir, 'checkpoint.pth'), model, args.model, args.img_size, thresholds,
-                        temperature=temperature, meta=meta)
+                        temperature=temperature, meta=meta, tta=args.tta)
 
         _write_json(os.path.join(run_dir, 'config.json'), config)
         _write_json(os.path.join(run_dir, 'metrics.json'), {
@@ -267,7 +267,8 @@ def run_evaluation(checkpoint_path, split='test', out_dir=None, n_boot=1000, bat
     df = data[data['split'] == split]
     loader = DataLoader(FundusDataset(df, val_transforms(checkpoint['img_size'])), batch_size=batch_size,
                         num_workers=workers, persistent_workers=workers > 0)
-    probs, labels, _ = predict(model, loader, device, temperature=checkpoint.get('temperature'))
+    probs, labels, _ = predict(model, loader, device, temperature=checkpoint.get('temperature'),
+                               tta=checkpoint.get('tta', False))
     metrics = compute_metrics(labels, probs, checkpoint['thresholds'], df['source'].values,
                               df['patient_id'].astype(str).values, n_boot)
     print_metrics(metrics, f'{split.capitalize()} ({checkpoint_path})')

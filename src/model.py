@@ -45,7 +45,7 @@ def get_device():
     return 'cpu'
 
 
-def save_checkpoint(path, model, model_name, img_size, thresholds, temperature=None, meta=None):
+def save_checkpoint(path, model, model_name, img_size, thresholds, temperature=None, meta=None, tta=False):
     """meta: JSON-safe run record (run id, data hash, git commit, config, metrics), stored inside the
     checkpoint so the file alone says how it was made. temperature: per-class calibration (None = off)."""
     checkpoint = {
@@ -55,11 +55,22 @@ def save_checkpoint(path, model, model_name, img_size, thresholds, temperature=N
         'thresholds': [float(t) for t in thresholds],
         'state_dict': model.state_dict(),
     }
+    if tta:
+        checkpoint['tta'] = True  # thresholds / temperature were fitted on flip-averaged logits
     if temperature is not None:
         checkpoint['temperature'] = [float(t) for t in temperature]
     if meta is not None:
         checkpoint['meta'] = json.loads(json.dumps(meta))  # plain types only, so weights_only loading works
     torch.save(checkpoint, path)
+
+
+def forward_logits(model, x, tta=False):
+    """Logits for a batch; with tta they are averaged over the image and its horizontal flip
+    (a left and a right eye look alike once flipped, which training already relies on)."""
+    logits = model(x)
+    if tta:
+        logits = (logits + model(torch.flip(x, dims=[-1]))) / 2
+    return logits
 
 
 def calibrated_sigmoid(logits, temperature=None):

@@ -83,7 +83,7 @@ def test_live_result_records_model_and_is_not_demo(client, auth, live):
     assert data["source"] == "live" and data["demo"] is False
     assert data["model"] == {"run_id": "20261103-b0-test", "checkpoint_sha256": "ab" * 32,
                              "model_name": "efficientnet_b0", "img_size": 384, "labels": ["M", "C", "G", "D"],
-                             "thresholds": [0.781, 0.290, 0.542, 0.480], "temperature": None}
+                             "thresholds": [0.781, 0.290, 0.542, 0.480], "temperature": None, "tta": False}
     assert data["overall"] == "Possible: Cataract" and [m["disease"] for m in data["maps"]] == ["Cataract"]
     stored = client.get(f"{API}/screenings/{sid}", headers=auth).json()["data"]["result"]
     assert stored["model"]["checkpoint_sha256"] == "ab" * 32  # kept with the screening
