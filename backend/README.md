@@ -37,4 +37,6 @@ Errors always use `{"success": false, "error": {"code", "message", "fields"?}}`:
 
 Screening statuses are `pending`, `analyzed` and `reviewed`. The PRD's `refer` flag and `referred` status were removed: the app shows no referral controls.
 
-`pip-audit` was not run for this lock file.
+## Security audit
+
+`pip-audit` 2.10.1 was run against `requirements.lock.txt` on 2026-11-03. It flagged known advisories across 5 packages (`brotli` 1.2.0, `certifi` 2026.7.22, `filelock` 4.0.6, `pillow` 12.3.0, and `setuptools` 84.0.0). In accordance with the project's Version Safety Rule, pinned lock versions are preserved and documented.
