@@ -45,6 +45,7 @@ Thumbs.db
 
 # Web app (backend/ + frontend/)
 backend/.env
+backend/.jwt_secret
 backend/app.db
 backend/*.db
 backend/uploads/

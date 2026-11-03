@@ -1,3 +1,4 @@
+import secrets
 import sys
 from pathlib import Path
 from typing import Literal
@@ -7,6 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]  # backend/
 REPO_ROOT = BACKEND_DIR.parent                      # contains src/, outputs/
+DEFAULT_DEMO_PASSWORD = "camp-S3HqmECzyZSY"
+JWT_SECRET_FILE = BACKEND_DIR / ".jwt_secret"
 
 
 class Settings(BaseSettings):
@@ -18,9 +21,13 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "sqlite:///./app.db"
 
-    JWT_SECRET: str = Field(min_length=32)
+    # Empty = a random key is generated on first start and kept in backend/.jwt_secret (git-ignored),
+    # so the signing key is never published. Set it explicitly for any shared deployment.
+    JWT_SECRET: str = Field(default="", min_length=0)
     JWT_EXPIRES_MINUTES: int = Field(default=720, ge=5, le=60 * 48)
-    DEMO_PASSWORD: str = Field(min_length=8)
+    # Public demo password, so a fresh clone can sign in with no setup. Demo accounts and fictional data
+    # only: override it in backend/.env for anything beyond a local demo.
+    DEMO_PASSWORD: str = Field(default=DEFAULT_DEMO_PASSWORD, min_length=8)
     AUTH_DISABLED: bool = False
 
     CORS_ORIGINS: str = "http://localhost:5173"
@@ -84,12 +91,33 @@ class Settings(BaseSettings):
         return self._resolve(self.FRONTEND_DIST)
 
 
+def _local_jwt_secret() -> str:
+    """This machine's signing key: read from backend/.jwt_secret, created on first use."""
+    try:
+        secret = JWT_SECRET_FILE.read_text(encoding="utf-8").strip()
+        if len(secret) >= 32:
+            return secret
+    except OSError:
+        pass
+    secret = secrets.token_hex(32)
+    JWT_SECRET_FILE.write_text(secret + "\n", encoding="utf-8")
+    JWT_SECRET_FILE.chmod(0o600)
+    return secret
+
+
 def load_settings() -> Settings:
     try:
-        return Settings()  # type: ignore[call-arg]  # values come from env vars / .env
+        settings = Settings()  # type: ignore[call-arg]  # values come from env vars / .env
     except ValidationError as exc:
         print(f"Invalid environment variables (check backend/.env):\n{exc}", file=sys.stderr)
         sys.exit(1)
+    if not settings.JWT_SECRET:
+        settings.JWT_SECRET = _local_jwt_secret()
+    elif len(settings.JWT_SECRET) < 32:
+        print("JWT_SECRET in backend/.env must be at least 32 characters (or remove it to use a generated key)",
+              file=sys.stderr)
+        sys.exit(1)
+    return settings
 
 
 settings = load_settings()

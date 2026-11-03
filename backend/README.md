@@ -9,12 +9,12 @@ Prerequisites: Python 3.10+ and the repository venv with the ML requirements (`p
 ```bash
 cd backend
 pip install -r requirements.txt            # exact versions: requirements.lock.txt
-cp .env.example .env                       # set JWT_SECRET (64 hex) and DEMO_PASSWORD (8+ chars)
+cp .env.example .env                       # optional: works without it (demo defaults)
 python -m app.seed --reset                 # tables + eight seeded ODIR test-split screenings
 uvicorn app.main:app --port 7860           # http://127.0.0.1:7860 , API docs at /docs
 ```
 
-`.env` values are validated at start-up; a missing or short `JWT_SECRET` / `DEMO_PASSWORD` stops the server with a readable message. Relative paths resolve against `backend/`.
+Sign in as `demo@example.com` or `judge@example.com` with `camp-S3HqmECzyZSY` (public demo password; override `DEMO_PASSWORD` in `.env`). With no `JWT_SECRET`, a random signing key is generated on first start and kept in `backend/.jwt_secret` (git-ignored). `.env` values are validated at start-up; a too-short `JWT_SECRET` / `DEMO_PASSWORD` stops the server with a readable message. Relative paths resolve against `backend/`.
 
 ## Commands
 

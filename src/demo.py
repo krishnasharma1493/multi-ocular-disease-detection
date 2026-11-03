@@ -3,8 +3,8 @@
     python src/demo.py                 # http://127.0.0.1:7860
     python src/demo.py --port 8000
 
-Equivalent to `cd backend && uvicorn app.main:app --port 7860`. Needs backend/.env
-(copy backend/.env.example) and a built frontend (`cd frontend && npm run build`).
+Equivalent to `cd backend && uvicorn app.main:app --port 7860`. Needs a built frontend
+(`cd frontend && npm run build`); backend/.env is optional (demo defaults apply without it).
 """
 import argparse
 import os

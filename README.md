@@ -60,11 +60,11 @@ The repository includes an EfficientNet-B0 checkpoint at `outputs/best_efficient
 # 1. Backend dependencies (into the repo venv from "Install")
 pip install -r backend/requirements.txt
 
-# 2. Backend settings: set JWT_SECRET (64 hex chars) and DEMO_PASSWORD (8+ chars)
-cp backend/.env.example backend/.env
-python -c "import secrets; print(secrets.token_hex(32))"   # paste as JWT_SECRET
+# 2. Backend settings: nothing to do. With no backend/.env the demo defaults apply, and a private
+#    sign-in key is generated on first start (backend/.jwt_secret, never committed).
+#    To change settings: cp backend/.env.example backend/.env
 
-# 3. Frontend build (Node 20+); set VITE_DEMO_PASSWORD to the same DEMO_PASSWORD to pre-fill sign-in
+# 3. Frontend build (Node 20+); the example env pre-fills the demo sign-in
 cp frontend/.env.example frontend/.env
 (cd frontend && npm ci && npm run build)
 
@@ -72,11 +72,18 @@ cp frontend/.env.example frontend/.env
 python src/demo.py            # = cd backend && uvicorn app.main:app --port 7860
 ```
 
-Open `http://127.0.0.1:7860` and sign in as `demo@example.com` with `DEMO_PASSWORD`. The startup log says `Model loaded on <device>`.
+Open `http://127.0.0.1:7860` and sign in. The startup log says `Model loaded on <device>`.
+
+| Demo account | Password |
+|---|---|
+| `demo@example.com` (screening technician, admin) | `camp-S3HqmECzyZSY` |
+| `judge@example.com` | `camp-S3HqmECzyZSY` |
+
+The password is public on purpose: the accounts and patients are fictional. Set your own `DEMO_PASSWORD` and `JWT_SECRET` in `backend/.env` before running it anywhere others can reach.
 
 - **Screens:** sign-in, Ledger (today's screenings, triage queue, findings by disease), Screenings (search, status filter, pages), New screening (photo upload with quality checks), the scan and result reveal with Grad-CAM regions, screening detail with reviewer reads, and the model card.
 - **Data:** SQLite at `backend/app.db` and photos in `backend/uploads/` (both git-ignored). An empty database is seeded on start-up with eight ODIR **test-split** photos and fictional patient refs. `cd backend && python -m app.seed --reset` restores that state.
-- **Fallbacks:** `USE_MOCKS=true` never loads the model. Seeded screenings then use results the real model produced for them (`python -m app.fixtures`), and any other photo gets "Model offline" rather than a made-up result. `AUTH_DISABLED=true` (backend) with `VITE_AUTH_DISABLED=true` (frontend) skips sign-in.
+- **Fallbacks:** if live inference fails or times out, the screening returns an error, never a stored result. `USE_MOCKS=true` never loads the model, so every photo gets "Model offline". Add `DEMO_FIXTURES=true` to let seeded screenings show the result the real model produced for them earlier (`python -m app.fixtures`), labelled "DEMO RESULT". `AUTH_DISABLED=true` (backend) with `VITE_AUTH_DISABLED=true` (frontend) skips sign-in.
 - **Development:** `cd frontend && npm run dev` serves the frontend on port 5173 with the API proxied to 7860. Backend details and tests are in [backend/README.md](backend/README.md).
 
 ## Results
