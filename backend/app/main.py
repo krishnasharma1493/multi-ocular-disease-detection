@@ -53,7 +53,7 @@ app.add_middleware(
 register_error_handlers(app)
 
 
-@app.get("/health", tags=["health"], summary="Liveness")
+@app.get("/health", tags=["health"], summary="Liveness", response_model=dict[str, str])
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
