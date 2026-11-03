@@ -33,8 +33,19 @@ export type ScreeningResult = {
   findings: Finding[];
   maps: AttentionMap[];
   source: 'live' | 'fixture';
+  demo: boolean; // precomputed demo result (DEMO_FIXTURES), never a live run
   latency_ms: number;
   disclaimer: string;
+  model: ModelInfo | null; // which checkpoint and thresholds produced it (null on older results)
+};
+export type ModelInfo = {
+  run_id: string | null;
+  checkpoint_sha256: string | null;
+  model_name: string | null;
+  img_size: number | null;
+  labels: string[];
+  thresholds: number[];
+  temperature: number[] | null;
 };
 export type ImageMeta = { name: string; width: number; height: number; type: string; bytes: number; sharpness: number | null };
 export type Screening = {
@@ -86,6 +97,11 @@ export type DiseaseCard = {
   test_positives: number | null;
   odir_ap: number | null;
   odir_roc_auc: number | null;
+  odir_recall: number | null;
+  odir_recall_ci: [number, number] | null;
+  odir_specificity: number | null;
+  odir_specificity_ci: [number, number] | null;
+  odir_positives: number | null;
 };
 export type SourceDataset = { name: string; images: number | null; diseases: string[] };
 export type ModelCard = {
@@ -97,6 +113,7 @@ export type ModelCard = {
   test_images: number | null;
   checkpoint_sha256: string | null;
   checkpoint_modified: string | null;
+  run_id: string | null;
   diseases: DiseaseCard[];
   sources: SourceDataset[];
   limitations: string[];

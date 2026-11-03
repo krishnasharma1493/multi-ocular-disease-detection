@@ -1,3 +1,5 @@
+import json
+
 import torch
 import torch.nn as nn
 from torchvision import models
@@ -43,14 +45,28 @@ def get_device():
     return 'cpu'
 
 
-def save_checkpoint(path, model, model_name, img_size, thresholds):
-    torch.save({
+def save_checkpoint(path, model, model_name, img_size, thresholds, temperature=None, meta=None):
+    """meta: JSON-safe run record (run id, data hash, git commit, config, metrics), stored inside the
+    checkpoint so the file alone says how it was made. temperature: per-class calibration (None = off)."""
+    checkpoint = {
         'model_name': model_name,
         'img_size': img_size,
         'labels': LABELS,
         'thresholds': [float(t) for t in thresholds],
         'state_dict': model.state_dict(),
-    }, path)
+    }
+    if temperature is not None:
+        checkpoint['temperature'] = [float(t) for t in temperature]
+    if meta is not None:
+        checkpoint['meta'] = json.loads(json.dumps(meta))  # plain types only, so weights_only loading works
+    torch.save(checkpoint, path)
+
+
+def calibrated_sigmoid(logits, temperature=None):
+    """Per-class probabilities; logits are divided by the checkpoint's temperature when it has one."""
+    if temperature is not None:
+        logits = logits / torch.as_tensor(temperature, dtype=logits.dtype, device=logits.device)
+    return torch.sigmoid(logits)
 
 
 def load_checkpoint(path, device='cpu'):

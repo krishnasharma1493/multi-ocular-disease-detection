@@ -25,7 +25,14 @@ function Gauge({ d }: { d: DiseaseCard }) {
     ['PRECISION', num2(d.test_precision)], ['RECALL', num2(d.test_recall)], ['F1', num2(d.test_f1)],
     ['POSITIVES', d.test_positives == null ? '—' : String(d.test_positives)],
   ];
-  const odir: [string, string][] = [['ODIR AP', num2(d.odir_ap)], ['ODIR AUC', num2(d.odir_roc_auc)]];
+  const range = (v: number | null, ci: [number, number] | null) =>
+    v == null ? '—' : `${(v * 100).toFixed(1)}%${ci ? ` (${(ci[0] * 100).toFixed(0)}–${(ci[1] * 100).toFixed(0)}%)` : ''}`;
+  const odir: [string, string][] = [
+    ['ODIR SENSITIVITY', range(d.odir_recall, d.odir_recall_ci)],
+    ['ODIR SPECIFICITY', range(d.odir_specificity, d.odir_specificity_ci)],
+    ['ODIR AP', num2(d.odir_ap)], ['ODIR AUC', num2(d.odir_roc_auc)],
+    ['ODIR POSITIVES', d.odir_positives == null ? '—' : String(d.odir_positives)],
+  ];
   const weak = d.odir_ap != null && d.odir_ap < 0.6;
   return (
     <div className="gauge">
@@ -39,7 +46,7 @@ function Gauge({ d }: { d: DiseaseCard }) {
       </svg>
       <dl className="figs">
         {figs.map(([k, v]) => <div key={k}><dt>{k}</dt><dd aria-label={v === '—' ? 'not available' : undefined}>{v}</dd></div>)}
-        <div className="figs-sub"><dt>EVERYDAY ODIR PHOTOS ONLY</dt><dd /></div>
+        <div className="figs-sub"><dt>EVERYDAY ODIR PHOTOS ONLY · 95% RANGE</dt><dd /></div>
         {odir.map(([k, v]) => <div key={k} className={weak && k === 'ODIR AP' ? 'weak' : undefined}><dt>{k}</dt><dd aria-label={v === '—' ? 'not available' : undefined}>{v}</dd></div>)}
       </dl>
     </div>

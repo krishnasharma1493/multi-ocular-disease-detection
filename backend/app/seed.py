@@ -17,7 +17,7 @@ from app.core.config import BACKEND_DIR, settings
 from app.core.db import engine, init_db, reset_db
 from app.modules.reviews.models import Review, ReviewDecision
 from app.modules.screenings.models import Eye, Screening, ScreeningStatus
-from app.modules.screenings.service import build_result, image_sha256, load_fixtures
+from app.modules.screenings.service import fixture_result, image_sha256, load_fixtures
 from app.modules.users.models import User
 from app.utils.time import utcnow
 
@@ -65,10 +65,10 @@ def seed(session: Session) -> None:
         )
         session.add(screening)
         session.flush()  # assigns the id used to look up the fixture
-        canned = fixtures.get(str(screening.id))
+        # Precomputed results are demo data: only stored when DEMO_FIXTURES=true, and labelled demo
+        canned = fixtures.get(str(screening.id)) if settings.DEMO_FIXTURES else None
         if screening.status != ScreeningStatus.pending and canned and canned.get("sha256") == image_sha256(filename):
-            result = build_result(int(screening.id), canned["labels"], canned["probabilities"], canned["thresholds"],
-                                  source="fixture", latency_ms=0, maps=canned.get("maps"))
+            result = fixture_result(int(screening.id), canned)
             screening.result = result.model_dump(mode="json")
             screening.analyzed_at = created
         elif screening.status != ScreeningStatus.pending:

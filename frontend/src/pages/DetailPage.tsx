@@ -281,7 +281,11 @@ export function DetailPage() {
             </div>
           )) : <p className="mute" style={{ padding: '16px 0', font: '500 13.5px/1.5 var(--sans)' }}>No readings yet. {s.has_image ? 'Run the analysis to screen this photo.' : 'Upload a fundus photo, then analyze it.'}</p>}
           {s.result && (
-            <div className="live"><i aria-hidden="true" />EfficientNet-B0 · {s.result.source === 'live' ? `live · ${s.result.latency_ms} ms` : 'stored result'}</div>
+            <div className="live"><i aria-hidden="true" />{s.result.demo
+              ? 'DEMO RESULT · precomputed for this sample photo, not a live run'
+              : `EfficientNet-B0 · live · ${s.result.latency_ms} ms`}
+              {' · '}{s.result.model?.run_id ? `run ${s.result.model.run_id}` : 'run not recorded'}
+              {s.result.model?.checkpoint_sha256 ? ` · checkpoint ${s.result.model.checkpoint_sha256.slice(0, 8)}` : ''}</div>
           )}
           <div className="scope">Screens these four diseases only; other eye conditions are not checked.</div>
         </section>

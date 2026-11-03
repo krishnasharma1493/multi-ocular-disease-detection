@@ -60,9 +60,10 @@ def test_create_upload_analyze_review(client, auth):
     # Model offline (USE_MOCKS) and no fixture for this new screening -> 503, never a made-up result
     off = client.post(f"{API}/screenings/{sid}/analyze", headers=auth)
     assert off.status_code == 503 and off.json()["error"]["code"] == "MODEL_OFFLINE"
-    # Seeded pending screening 7 returns its precomputed real result
+    # Demo mode: seeded pending screening 7 returns its precomputed real result, labelled demo
     seven = client.post(f"{API}/screenings/7/analyze", headers=auth).json()["data"]
     assert seven["overall"] == "Possible: Cataract" and seven["source"] == "fixture" and seven["maps"]
+    assert seven["demo"] is True and seven["model"]["thresholds"]
     review = client.post(f"{API}/screenings/7/reviews", headers=auth, json={"decision": "agree", "note": "ok"})
     assert review.status_code == 201
     assert client.get(f"{API}/screenings/7", headers=auth).json()["data"]["status"] == "reviewed"

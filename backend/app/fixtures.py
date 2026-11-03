@@ -37,6 +37,9 @@ def main() -> None:
                 "probabilities": [f.probability for f in result.findings],
                 "thresholds": [f.threshold for f in result.findings],
                 "maps": [m.model_dump() for m in result.maps],
+                # which model made it, so a demo result can be traced like a live one
+                "run_id": result.model.run_id if result.model else None,
+                "checkpoint_sha256": result.model.checkpoint_sha256 if result.model else None,
             }
     FIXTURES.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
     reset_and_seed()  # stored results on seeded screenings now match the new fixtures

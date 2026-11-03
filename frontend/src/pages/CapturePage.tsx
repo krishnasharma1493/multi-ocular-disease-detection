@@ -163,7 +163,7 @@ export function CapturePage() {
       }
       const data = ae?.fields?.file?.[0] ?? `${file.name} · ${fileSize(file.size)}`;
       if (ae?.code === 'IMAGE_QUALITY') {
-        setErr({ code: 'ERR · IMAGE QUALITY', head: 'Too blurred to screen, or not a fundus photo.', body: 'Refocus on the optic disc and retake. Check the lens cap and that the camera is in fundus mode.', data, blocking: true, rejected: true });
+        setErr({ code: 'ERR · IMAGE QUALITY', head: `${ae.message}.`, body: 'Refocus on the optic disc and retake. Check the lens cap and that the camera is in fundus mode.', data, blocking: true, rejected: true });
       } else if (ae?.code === 'UNSUPPORTED_MEDIA_TYPE') {
         setErr({ code: 'ERR · FILE TYPE', head: `${ae.message}.`, body: 'Export the photo from the camera as JPG or PNG, then place it in the lens again.', data, blocking: true, rejected: true });
       } else if (ae?.code === 'PAYLOAD_TOO_LARGE') {

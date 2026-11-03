@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
+from pydantic import model_validator
 from sqlmodel import Field, SQLModel
 
 from app.modules.screenings.models import Eye, ScreeningBase, ScreeningStatus
@@ -36,6 +37,17 @@ class AttentionMap(SQLModel):
     grid: list[list[float]] | None = None    # square grid, values 0–1, row 0 = top of the image
 
 
+class ModelInfo(SQLModel):
+    """Which model produced a result, so every stored result can be traced to one checkpoint."""
+    run_id: str | None = None             # training run id saved in the checkpoint; None for older checkpoints
+    checkpoint_sha256: str | None = None  # hash of the checkpoint file
+    model_name: str | None = None
+    img_size: int | None = None
+    labels: list[str] = []
+    thresholds: list[float] = []          # the decision thresholds used for this result
+    temperature: list[float] | None = None  # per-class calibration, None = uncalibrated
+
+
 class ScreeningResult(SQLModel):
     screening_id: int
     overall: str         # "Possible: Glaucoma" | "No Myopia, Cataract, Glaucoma or Diabetic Retinopathy detected"
@@ -43,8 +55,15 @@ class ScreeningResult(SQLModel):
     findings: list[Finding]
     maps: list[AttentionMap] = []
     source: Literal["live", "fixture"]
+    demo: bool = False   # True for a precomputed demo result (source "fixture"), never for a live run
     latency_ms: int
     disclaimer: str
+    model: ModelInfo | None = None  # None only on results stored before model tracking existed
+
+    @model_validator(mode="after")
+    def _fixture_is_demo(self) -> "ScreeningResult":
+        self.demo = self.source == "fixture"  # also labels results stored before this field existed
+        return self
 
 
 class ImageMeta(SQLModel):

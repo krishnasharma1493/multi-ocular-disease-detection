@@ -11,11 +11,11 @@ IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
 
-class ODIR5KDataset(Dataset):
+class FundusDataset(Dataset):
     def __init__(self, df, transform=None):
         """
         Args:
-            df (DataFrame): rows from data/labels.csv (one per eye image, image at df['path'])
+            df (DataFrame): rows from data/labels.csv (one per eye image from ODIR or an external dataset, image at df['path'])
             transform (callable, optional): albumentations transform
         """
         self.data = df.reset_index(drop=True)
@@ -35,13 +35,30 @@ class ODIR5KDataset(Dataset):
         return image, self.targets[idx]
 
 
-def train_transforms(img_size=384):
+def train_transforms(img_size=384, strong=False):
+    """strong=True adds camera variation: exposure, colour, mild noise, JPEG artefacts and low resolution.
+
+    Blur stays mild on purpose: on a fundus photo, haze is the sign of cataract, so heavy blur on
+    images labelled "no cataract" would teach the model to ignore it.
+    """
+    camera = [
+        A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.7),
+        A.RandomGamma(gamma_limit=(80, 120), p=0.3),
+        A.HueSaturationValue(hue_shift_limit=8, sat_shift_limit=20, val_shift_limit=10, p=0.5),
+        A.CLAHE(clip_limit=2.0, p=0.2),
+        A.OneOf([A.GaussianBlur(blur_limit=(3, 3), sigma_limit=(0.1, 0.8)),
+                 A.GaussNoise(std_range=(0.01, 0.04)),
+                 A.Downscale(scale_range=(0.5, 0.9))], p=0.3),
+        A.ImageCompression(quality_range=(60, 95), p=0.3),
+    ] if strong else [
+        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+        A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=10, val_shift_limit=5, p=0.3),
+    ]
     return A.Compose([
         A.Resize(img_size, img_size),
         A.HorizontalFlip(p=0.5),
         A.Affine(scale=(0.9, 1.1), rotate=(-20, 20), translate_percent=(-0.05, 0.05), p=0.7),
-        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
-        A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=10, val_shift_limit=5, p=0.3),
+        *camera,
         A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ToTensorV2(),
     ])

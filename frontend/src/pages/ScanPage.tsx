@@ -259,7 +259,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
           </div>
           <div className="log-col" ref={logColRef}>
             <div className="tag">
-              <div className="tag-head"><span>SPECIMEN TAG</span><span className="mute">{result ? (result.source === 'live' ? `MODEL OUTPUT · ${result.latency_ms} MS` : 'STORED MODEL OUTPUT') : 'MODEL RUNNING'}</span></div>
+              <div className="tag-head"><span>SPECIMEN TAG</span><span className="mute">{result ? (result.demo ? 'DEMO RESULT · PRECOMPUTED, NOT LIVE' : `LIVE MODEL OUTPUT · ${result.latency_ms} MS`) : 'MODEL RUNNING'}</span></div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 <span className="mono" style={{ font: '600 30px/1 var(--mono)' }}>{screening.patient_ref}</span>
                 <EyeDots eye={eyeCode(screening.eye)} />

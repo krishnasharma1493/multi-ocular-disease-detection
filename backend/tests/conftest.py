@@ -6,7 +6,8 @@ from pathlib import Path
 _tmp = Path(tempfile.mkdtemp(prefix="retinascreen-test-"))
 os.environ.update({
     "APP_ENV": "test",
-    "USE_MOCKS": "true",              # no torch weights, no GPU: seeded screenings use their fixtures
+    "USE_MOCKS": "true",              # no torch weights, no GPU
+    "DEMO_FIXTURES": "true",          # demo mode: seeded screenings use their precomputed (labelled) results
     "DATABASE_URL": f"sqlite:///{_tmp / 'test.db'}",
     "UPLOAD_DIR": str(_tmp / "uploads"),
     "JWT_SECRET": "t" * 64,

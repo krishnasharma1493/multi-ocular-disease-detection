@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     MODEL_METRICS: str = "../outputs/metrics.json"
     MODEL_DEVICE: Literal["auto", "cpu", "cuda", "mps"] = "auto"
     USE_MOCKS: bool = False
+    # Demo only: when the model is not loaded, seeded sample screenings may show the result the real model
+    # produced for them earlier. Off by default, so a live failure is an error, never a stored result.
+    DEMO_FIXTURES: bool = False
+    # Seconds one screening (forward pass + Grad-CAM) may take before the request fails with 504
+    INFERENCE_TIMEOUT_S: float = Field(default=30, gt=0, le=600)
 
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_MB: int = Field(default=10, ge=1, le=25)

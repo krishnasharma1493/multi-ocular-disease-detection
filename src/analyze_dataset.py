@@ -1,5 +1,4 @@
 import os
-import sys
 
 import matplotlib
 
@@ -8,8 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.labels import DISEASES, LABELS
+from .labels import DISEASES, LABELS
 
 
 def analyze_dataset(labels_csv='data/labels.csv', out_dir='outputs'):

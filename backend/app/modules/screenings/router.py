@@ -16,7 +16,7 @@ from app.modules.reviews.models import Review
 from app.modules.screenings.models import Screening, ScreeningStatus
 from app.modules.screenings.schemas import (ScreeningCreate, ScreeningRead, ScreeningResult, ScreeningStats,
                                             ScreeningUpdate)
-from app.modules.screenings.service import MIN_SHARPNESS, image_quality, run_screening
+from app.modules.screenings.service import image_quality, run_screening
 from app.utils.ownership import get_owned_or_404
 from app.utils.time import utcnow
 
@@ -150,11 +150,9 @@ def upload_image(screening_id: int, session: SessionDep, user: CurrentUser,
         ext = name.rsplit(".", 1)[-1].upper() if "." in name else "not an image"
         raise AppError(415, "UNSUPPORTED_MEDIA_TYPE", f"This file is {ext}, not JPG or PNG",
                        {"file": [f"{name} · {_mb(len(data))}"]})
-    sharpness, fundus = image_quality(image)
-    if sharpness < MIN_SHARPNESS or not fundus:
-        raise AppError(422, "IMAGE_QUALITY", "Too blurred to screen, or not a fundus photo",
-                       {"file": [f"SHARPNESS {sharpness:.2f} · MINIMUM {MIN_SHARPNESS:.2f}" if fundus
-                                 else "NO FUNDUS FOUND IN THE PHOTO"]})
+    quality = image_quality(image)
+    if not quality.ok:
+        raise AppError(422, "IMAGE_QUALITY", str(quality.reason), {"file": [quality.detail]})
     suffix, label = ALLOWED_TYPES[kind]
     if screening.image_filename:
         (settings.upload_dir / screening.image_filename).unlink(missing_ok=True)
@@ -162,7 +160,7 @@ def upload_image(screening_id: int, session: SessionDep, user: CurrentUser,
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     (settings.upload_dir / screening.image_filename).write_bytes(data)
     screening.image_meta = {"name": name, "width": image.width, "height": image.height, "type": label,
-                            "bytes": len(data), "sharpness": round(sharpness, 2)}
+                            "bytes": len(data), "sharpness": round(quality.sharpness, 2)}
     screening.result, screening.analyzed_at = None, None  # an old result never describes a new photo
     screening.status = ScreeningStatus.pending
     screening.updated_at = utcnow()
