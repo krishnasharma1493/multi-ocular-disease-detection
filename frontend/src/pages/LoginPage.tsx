@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { env } from '../lib/env';
 import { apiErrorMessage, apiStatus } from '../lib/api/types';
@@ -32,6 +32,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get('next'));
+  const [today] = useState(() => dayStamp(new Date()));
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: env.VITE_DEMO_MODE
@@ -46,8 +47,8 @@ export function LoginPage() {
       navigate(next, { replace: true });
     } catch (err) {
       const message = apiStatus(err) === 401
-        ? 'ERR 401 · EMAIL OR PASSWORD NOT RECOGNISED. USE THE DEMO ACCOUNT CARD AT THE CAMP DESK.'
-        : apiErrorMessage(err).toUpperCase();
+        ? 'Email or password not recognised'
+        : apiErrorMessage(err);
       form.setError('root', { message });
     }
   });
@@ -62,7 +63,7 @@ export function LoginPage() {
         <div className="login-top">
           <Logo />
           <span className="login-brand">RetinaScreen</span>
-          <span className="eyebrow login-unit">FIELD UNIT · {dayStamp(new Date())}</span>
+          <span className="eyebrow login-unit">PATIENT PORTAL · {today}</span>
         </div>
         <div className="login-chart" aria-hidden="true">
           {CHART.map(([word, acuity, font, ls], i) => (
@@ -89,7 +90,7 @@ export function LoginPage() {
           <form onSubmit={onSubmit} noValidate aria-labelledby="login-h">
             <div className="login-head">
               <span className="eyebrow">SIGN IN</span>
-              <h1 id="login-h">Open today’s ledger</h1>
+              <h1 id="login-h">Sign in to see your eye screenings</h1>
             </div>
             <div className="login-field">
               <label htmlFor="email" className="label">EMAIL</label>
@@ -109,9 +110,14 @@ export function LoginPage() {
             </div>
             <div className="login-actions">
               <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                <span>{isSubmitting ? 'Opening ledger…' : 'Begin screening'}</span><span className="glyph" aria-hidden="true">→</span>
+                <span>{isSubmitting ? 'Signing in…' : 'Sign in'}</span><span className="glyph" aria-hidden="true">→</span>
               </button>
-              <span className="demo-note"><i aria-hidden="true" />Demo accounts only{env.VITE_DEMO_MODE ? ' · details pre-filled' : ''}</span>
+              <span className="demo-note" style={{ justifyContent: 'center' }}>
+                New here? <Link to="/signup" className="link">Create an account</Link>
+              </span>
+              {env.VITE_DEMO_MODE && (
+                <span className="demo-note"><i aria-hidden="true" />Demo account · details pre-filled</span>
+              )}
             </div>
           </form>
         </main>
