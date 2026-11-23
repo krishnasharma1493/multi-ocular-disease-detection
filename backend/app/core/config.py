@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_MB: int = Field(default=10, ge=1, le=25)
 
+    # Eye-health chat (server-side only: never put the key in the frontend or a VITE_* variable)
+    LLM_PROVIDER: Literal["gemini"] = "gemini"
+    GEMINI_API_KEY: str = ""        # empty = chat answers 503 CHAT_UNAVAILABLE; results still work
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    LLM_TIMEOUT_S: float = Field(default=20, gt=0, le=120)
+
     # Built React app (npm run build) served on the same port as the API
     FRONTEND_DIST: str = "../frontend/dist"
 

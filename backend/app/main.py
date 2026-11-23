@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.db import init_db
 from app.core.errors import error_response, register_error_handlers
 from app.modules.auth.router import router as auth_router
+from app.modules.chat.router import router as chat_router
 from app.modules.demo.router import router as demo_router
 from app.modules.knowledge.index import ensure_index
 from app.modules.model_card.router import router as model_card_router
@@ -61,7 +62,8 @@ def health() -> dict[str, str]:
 
 
 v1 = APIRouter(prefix="/api/v1")
-for module_router in (auth_router, users_router, screenings_router, reviews_router, model_card_router, demo_router):
+for module_router in (auth_router, users_router, screenings_router, chat_router, reviews_router, model_card_router,
+                      demo_router):
     v1.include_router(module_router)
 app.include_router(v1)
 
