@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.deps import CurrentUser, SessionDep
 from app.core.errors import AppError
 from app.core.schemas import Envelope, Page, Pagination
+from app.modules.chat.models import ChatMessage
 from app.modules.reviews.models import Review
 from app.modules.screenings.models import Screening, ScreeningStatus
 from app.modules.screenings.schemas import (ScreeningCreate, ScreeningRead, ScreeningResult, ScreeningStats,
@@ -121,6 +122,8 @@ def delete_screening(screening_id: int, session: SessionDep, user: CurrentUser):
     screening = get_owned_or_404(session, Screening, screening_id, user.id)
     for review in session.exec(select(Review).where(Review.screening_id == screening_id)).all():
         session.delete(review)
+    for message in session.exec(select(ChatMessage).where(ChatMessage.screening_id == screening_id)).all():
+        session.delete(message)
     if screening.image_filename:
         (settings.upload_dir / screening.image_filename).unlink(missing_ok=True)
     session.delete(screening)
