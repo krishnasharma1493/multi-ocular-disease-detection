@@ -14,7 +14,8 @@ from app.core.errors import AppError
 from app.core.schemas import Envelope, Page, Pagination
 from app.modules.chat.models import ChatMessage
 from app.modules.reviews.models import Review
-from app.modules.screenings.models import Screening, ScreeningStatus
+from app.modules.screenings.models import ImageSource, Screening, ScreeningStatus
+from app.modules.screenings.phone20d import prepare_phone_20d
 from app.modules.screenings.schemas import (ScreeningCreate, ScreeningRead, ScreeningResult, ScreeningStats,
                                             ScreeningUpdate)
 from app.modules.screenings.service import image_quality, run_screening
@@ -23,6 +24,15 @@ from app.utils.time import utcnow
 
 router = APIRouter(prefix="/screenings", tags=["screenings"])
 ALLOWED_TYPES = {"JPEG": (".jpg", "JPG"), "PNG": (".png", "PNG")}
+
+
+def _remove_photo_files(screening: Screening) -> None:
+    """Delete the stored photo and, for a phone + 20D photo, the original upload kept beside it."""
+    if screening.image_filename:
+        (settings.upload_dir / screening.image_filename).unlink(missing_ok=True)
+    original = ((screening.image_meta or {}).get("original") or {}).get("filename")
+    if original:
+        (settings.upload_dir / original).unlink(missing_ok=True)
 
 
 def _mb(n: int) -> str:
@@ -90,7 +100,7 @@ def screening_stats(session: SessionDep, user: CurrentUser):
 
 @router.post("", response_model=Envelope[ScreeningRead], status_code=201, summary="Create a screening")
 def create_screening(body: ScreeningCreate, session: SessionDep, user: CurrentUser):
-    screening = Screening.model_validate(body, update={"owner_id": user.id, "patient_ref": body.patient_ref.strip()})
+    screening = Screening.model_validate(body, update={"owner_id": user.id, "patient_ref": body.patient_ref.strip() or "Me"})
     session.add(screening)
     session.commit()
     session.refresh(screening)
@@ -109,7 +119,15 @@ def update_screening(screening_id: int, body: ScreeningUpdate, session: SessionD
     changes = body.model_dump(exclude_unset=True)
     if not changes:
         raise AppError(400, "INVALID_REQUEST", "Nothing to update")
+    if "image_source" in changes and changes["image_source"] is None:
+        changes.pop("image_source")
+    source_changed = "image_source" in changes and changes["image_source"] != screening.image_source
     screening.sqlmodel_update(changes)
+    if source_changed and screening.image_filename:
+        # A photo was prepared and checked for the old source, so it can't be reused: start again from a new upload
+        _remove_photo_files(screening)
+        screening.image_filename = screening.image_meta = screening.result = screening.analyzed_at = None
+        screening.status = ScreeningStatus.pending
     screening.updated_at = utcnow()
     session.add(screening)
     session.commit()
@@ -124,8 +142,7 @@ def delete_screening(screening_id: int, session: SessionDep, user: CurrentUser):
         session.delete(review)
     for message in session.exec(select(ChatMessage).where(ChatMessage.screening_id == screening_id)).all():
         session.delete(message)
-    if screening.image_filename:
-        (settings.upload_dir / screening.image_filename).unlink(missing_ok=True)
+    _remove_photo_files(screening)
     session.delete(screening)
     session.commit()
     return Envelope(data={"id": screening_id})
@@ -153,17 +170,33 @@ def upload_image(screening_id: int, session: SessionDep, user: CurrentUser,
         ext = name.rsplit(".", 1)[-1].upper() if "." in name else "not an image"
         raise AppError(415, "UNSUPPORTED_MEDIA_TYPE", f"This file is {ext}, not JPG or PNG",
                        {"file": [f"{name} · {_mb(len(data))}"]})
+    suffix, label = ALLOWED_TYPES[kind]
+    extra: dict = {}
+    stored_bytes, stored_suffix, stored_label = data, suffix, label
+    if screening.image_source == ImageSource.phone_20d:
+        # Find the retina circle, black out the rest, turn it upright; the original is kept beside it
+        prepared = prepare_phone_20d(image)
+        if not prepared.ok or prepared.image is None:
+            raise AppError(422, "IMAGE_QUALITY", str(prepared.reason), {"file": [prepared.detail]})
+        original_name = f"{secrets.token_hex(16)}{suffix}"
+        buf = io.BytesIO()
+        prepared.image.save(buf, "JPEG", quality=95)
+        stored_bytes, stored_suffix, stored_label = buf.getvalue(), ".jpg", "JPG"
+        x, y, r = prepared.circle or (0, 0, 0)
+        extra = {"original": {"filename": original_name, "type": label, "bytes": len(data)},
+                 "circle": {"x": x, "y": y, "r": r}, "glare": round(prepared.glare, 4)}
+        image = prepared.image
     quality = image_quality(image)
     if not quality.ok:
         raise AppError(422, "IMAGE_QUALITY", str(quality.reason), {"file": [quality.detail]})
-    suffix, label = ALLOWED_TYPES[kind]
-    if screening.image_filename:
-        (settings.upload_dir / screening.image_filename).unlink(missing_ok=True)
-    screening.image_filename = f"{secrets.token_hex(16)}{suffix}"  # random server-side name
+    _remove_photo_files(screening)
+    screening.image_filename = f"{secrets.token_hex(16)}{stored_suffix}"  # random server-side name
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
-    (settings.upload_dir / screening.image_filename).write_bytes(data)
-    screening.image_meta = {"name": name, "width": image.width, "height": image.height, "type": label,
-                            "bytes": len(data), "sharpness": round(quality.sharpness, 2)}
+    (settings.upload_dir / screening.image_filename).write_bytes(stored_bytes)
+    if extra:
+        (settings.upload_dir / extra["original"]["filename"]).write_bytes(data)
+    screening.image_meta = {"name": name, "width": image.width, "height": image.height, "type": stored_label,
+                            "bytes": len(stored_bytes), "sharpness": round(quality.sharpness, 2), **extra}
     screening.result, screening.analyzed_at = None, None  # an old result never describes a new photo
     screening.status = ScreeningStatus.pending
     screening.updated_at = utcnow()

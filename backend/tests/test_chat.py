@@ -105,7 +105,8 @@ def test_context_has_own_records_only(client, auth, fake):
     assert "THIS SCREENING: screening #1" in system
     assert "Myopia: probability 100%, threshold 78%, FLAGGED as a possible sign" in system
     assert "Glaucoma: probability 0%, threshold 54%, not flagged" in system
-    assert "DEMO result" in system and "EXPERIMENTAL reading" in system and "image source unknown" in system
+    # Seeded photos are recorded as clinic fundus photos, so they carry no "experimental source" caveat
+    assert "DEMO result" in system and "image source clinic_fundus" in system and "EXPERIMENTAL reading" not in system
     # The patient's other screenings, never another patient's (#8 belongs to judge)
     for other in range(2, 8):
         assert f"screening #{other} " in system
