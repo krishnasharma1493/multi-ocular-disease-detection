@@ -78,6 +78,39 @@ class ImageMeta(SQLModel):
     sharpness: float | None = None
 
 
+class SummaryQuality(SQLModel):
+    ok: bool | None          # None when the photo's quality was not recorded
+    label: str
+    detail: str
+
+
+class SummaryFinding(SQLModel):
+    code: str
+    disease: str
+    flagged: bool
+    plain: str
+    borderline: bool         # the score is within 0.10 of the cut-off
+
+
+class SummaryNextStep(SQLModel):
+    urgency: Literal["none", "routine", "consider", "soon"]
+    text: str
+
+
+class PatientSummary(SQLModel):
+    """Plain-language reading of one screening; built by `patient_summary` from the stored fields only."""
+    state: Literal["no_photo", "waiting", "result", "experimental"]
+    validated_source: bool        # only a clinic fundus photo is a source the model was evaluated on
+    is_diagnosis: bool = False    # always false: a screening is not a diagnosis
+    quality: SummaryQuality | None = None
+    headline: str
+    findings: list[SummaryFinding] = []
+    uncertainty: list[str] = []
+    next_step: SummaryNextStep
+    urgent_care: str              # shown whatever the result is
+    limits: list[str] = []
+
+
 class ScreeningRead(ScreeningBase):
     id: int
     owner_id: int
@@ -85,6 +118,7 @@ class ScreeningRead(ScreeningBase):
     image: ImageMeta | None = None
     latest_review: str | None = None   # decision of the newest review: agree | disagree | unsure
     result: ScreeningResult | None = None
+    summary: PatientSummary | None = None
     analyzed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime

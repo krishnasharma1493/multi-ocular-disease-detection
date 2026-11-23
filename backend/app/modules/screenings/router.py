@@ -19,6 +19,7 @@ from app.modules.screenings.phone20d import prepare_phone_20d
 from app.modules.screenings.schemas import (ScreeningCreate, ScreeningRead, ScreeningResult, ScreeningStats,
                                             ScreeningUpdate)
 from app.modules.screenings.service import image_quality, run_screening
+from app.modules.screenings.summary import patient_summary
 from app.utils.ownership import get_owned_or_404
 from app.utils.time import utcnow
 
@@ -50,6 +51,7 @@ def _latest_reviews(session, ids: list[int]) -> dict[int, str]:
 def to_read(screening: Screening, latest: dict[int, str] | None = None) -> ScreeningRead:
     return ScreeningRead.model_validate(screening, update={
         "has_image": screening.image_filename is not None, "image": screening.image_meta,
+        "summary": patient_summary(screening),
         "latest_review": (latest or {}).get(int(screening.id or 0))})
 
 
