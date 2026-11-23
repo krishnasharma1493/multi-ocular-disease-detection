@@ -16,6 +16,7 @@ from app.core.db import init_db
 from app.core.errors import error_response, register_error_handlers
 from app.modules.auth.router import router as auth_router
 from app.modules.demo.router import router as demo_router
+from app.modules.knowledge.index import ensure_index
 from app.modules.model_card.router import router as model_card_router
 from app.modules.reviews.router import router as reviews_router
 from app.modules.screenings import inference
@@ -34,6 +35,7 @@ async def lifespan(_: FastAPI):
     init_db()
     if settings.SEED_ON_STARTUP:
         seed_if_empty()
+    ensure_index()  # chat reference passages; rebuilt only when knowledge/sources/ changes
     # 2. Load the model ONCE, off the event loop
     await asyncio.to_thread(inference.load_screener)
     if not settings.frontend_dist.joinpath("index.html").is_file():

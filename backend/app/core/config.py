@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     PORT: int = 7860
 
     DATABASE_URL: str = "sqlite:///./app.db"
+    # NEI reference passages for the chat: a separate SQLite file, never mixed with patient data
+    KNOWLEDGE_DB: str = "./knowledge.db"
 
     # Empty = a random key is generated on first start and kept in backend/.jwt_secret (git-ignored),
     # so the signing key is never published. Set it explicitly for any shared deployment.
@@ -73,6 +75,10 @@ class Settings(BaseSettings):
         if self.DATABASE_URL.startswith(prefix) and not self.DATABASE_URL.startswith(prefix + "/"):
             return prefix + str(self._resolve(self.DATABASE_URL[len(prefix):]))
         return self.DATABASE_URL
+
+    @property
+    def knowledge_db_path(self) -> Path:
+        return self._resolve(self.KNOWLEDGE_DB)
 
     @property
     def model_checkpoint_path(self) -> Path:
