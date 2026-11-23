@@ -12,6 +12,7 @@ import { LoginPage } from './pages/LoginPage';
 import { ModelPage } from './pages/ModelPage';
 import { ScanPage } from './pages/ScanPage';
 import { ScreeningsPage } from './pages/ScreeningsPage';
+import { SignupPage } from './pages/SignupPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
     element: <Root />,
     children: [
       { path: '/login', element: <LoginPage /> },
+      { path: '/signup', element: <SignupPage /> },
       {
         element: <RequireAuth><AppShell /></RequireAuth>,
         children: [

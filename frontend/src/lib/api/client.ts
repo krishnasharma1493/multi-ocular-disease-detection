@@ -14,12 +14,12 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// No refresh flow: any 401 (except a failed login) → clear the token and go to sign-in, keeping the page
+// No refresh flow: any 401 (except a failed login or register) → clear the token and go to sign-in, keeping the page
 client.interceptors.response.use(
   (res) => res,
   (error: AxiosError<ApiErrorBody>) => {
-    const isLoginCall = error.config?.url?.includes('/auth/login');
-    if (error.response?.status === 401 && !isLoginCall && !env.VITE_AUTH_DISABLED) {
+    const isAuthCall = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
+    if (error.response?.status === 401 && !isAuthCall && !env.VITE_AUTH_DISABLED) {
       tokenStore.clear();
       if (window.location.pathname !== '/login') {
         const next = window.location.pathname + window.location.search;
