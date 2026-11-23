@@ -8,4 +8,5 @@ npm ci
 npm run build            # dist/ is served by the backend on http://127.0.0.1:7860
 npm run dev              # http://localhost:5173 , API proxied to 127.0.0.1:7860
 npm run lint
+npm run e2e              # end-to-end + accessibility tests (Playwright), see the root README
 ```

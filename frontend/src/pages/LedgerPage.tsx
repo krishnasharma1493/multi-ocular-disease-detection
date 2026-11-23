@@ -99,17 +99,17 @@ function ItemRow({ s, m }: Item) {
   const g = STATUS_LABEL[m.status];
   const eye = eyeCode(s.eye);
   return (
-    <Link className="item" to={`/screenings/${s.id}`} aria-label={`${s.patient_ref}, ${eyeWord(s.eye)} eye, ${hhmm(m.created)}. ${m.verdict}. ${m.sub}.${s.latest_review === 'disagree' ? ' Reviewer disagrees.' : ''}`}>
+    <Link className="item" to={`/screenings/${s.id}`}>
       <span className="hole" aria-hidden="true" />
       <span className="lens-thumb" aria-hidden="true">
         {m.status === 'pending' ? <Lens size={72} state="empty" /> : <Lens size={72} values={m.vals} thresholds={m.ths} eye={eye ?? 'R'} />}
       </span>
-      <span className="who" aria-hidden="true">
+      <span className="who">
         <span className="ref" title={s.patient_ref}>{s.patient_ref}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><EyeDots eye={eye} dot={9} /><span className="mono mute" style={{ fontSize: 11 }}>{hhmm(m.created)}</span></span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span aria-hidden="true"><EyeDots eye={eye} dot={9} /></span><span className="sr-only">{eyeWord(s.eye)} eye,</span><span className="mono mute" style={{ fontSize: 11 }}>{hhmm(m.created)}</span></span>
       </span>
-      <span className="what" aria-hidden="true"><b>{m.verdict}</b><span>{m.sub}</span></span>
-      <span className={`state ${g.cls}`} aria-hidden="true"><span>{g.word}</span>{s.latest_review === 'disagree' ? <span className="stamp-sm">✕ REVIEWER: DISAGREE</span> : s.status === 'reviewed' && <span className="mute" style={{ fontSize: 10 }}>✓ REVIEWED</span>}</span>
+      <span className="what"><b>{m.verdict}</b><span>{m.sub}</span></span>
+      <span className={`state ${g.cls}`}><span>{g.word}</span>{s.latest_review === 'disagree' ? <span className="stamp-sm">✕ REVIEWER: DISAGREE</span> : s.status === 'reviewed' && <span className="mute" style={{ fontSize: 10 }}>✓ REVIEWED</span>}</span>
     </Link>
   );
 }

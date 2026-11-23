@@ -17,6 +17,10 @@
   --disabled: #8C8676;
   --disabled-rule: #B9B09C;
   --placeholder: #9C9483;
+  /* Status text on --card rows and their hover: same hues, darker, so 11px text keeps 4.5:1 (WCAG AA) */
+  --vermilion-ink: #A8350F;
+  --ochre-ink: #765210;
+  --green-ink: #355C43;
   --serif: Newsreader, Georgia, serif;
   --sans: 'Instrument Sans', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
@@ -133,6 +137,9 @@ h1, h2, p { margin: 0; }
 .group-head { display: flex; justify-content: space-between; padding-bottom: 6px; font: 600 11px/1 var(--mono); letter-spacing: 0.14em; }
 .item { display: grid; grid-template-columns: 12px 72px 132px minmax(0, 1fr) auto; align-items: center; gap: 20px; padding: 12px 20px 12px 14px; background: var(--card); border-top: 1px solid var(--ink); color: var(--ink); text-decoration: none; transition: background-color 160ms ease; }
 .item:hover { background: #E2DBCB; color: var(--ink); }
+.item .c-pos, .item .stamp-sm { color: var(--vermilion-ink); }
+.item .c-rev { color: var(--ochre-ink); }
+.item .c-clr { color: var(--green-ink); }
 .item .hole { width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--ink); background: var(--paper); }
 .item .who { display: flex; flex-direction: column; gap: 8px; }
 .item .ref { font: 600 18px/1 var(--mono); }
@@ -274,7 +281,7 @@ h1, h2, p { margin: 0; }
 .cert-line .n { font-family: var(--mono); font-size: 22px; }
 .gauges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .gauge { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 16px 0; border-left: 1px solid var(--rule); min-width: 0; }
-.gauge h3 { align-self: flex-start; margin: 0; font: 500 24px/1 var(--serif); letter-spacing: -0.01em; }
+.gauge h2 { align-self: flex-start; margin: 0; font: 500 24px/1 var(--serif); letter-spacing: -0.01em; }
 .gauge svg { max-width: 100%; height: auto; }
 .figs { align-self: stretch; display: flex; flex-direction: column; border-top: 1px solid var(--ink); margin: 0; }
 .figs div { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--rule-soft); font: 500 12.5px/1 var(--mono); font-variant-numeric: tabular-nums; }
