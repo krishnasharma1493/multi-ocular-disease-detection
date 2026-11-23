@@ -86,6 +86,31 @@ The password is public on purpose: the accounts and patients are fictional. Set 
 - **Fallbacks:** if live inference fails or times out, the screening returns an error, never a stored result. `USE_MOCKS=true` never loads the model, so every photo gets "Model offline". Add `DEMO_FIXTURES=true` to let seeded screenings show the result the real model produced for them earlier (`python -m app.fixtures`), labelled "DEMO RESULT". `AUTH_DISABLED=true` (backend) with `VITE_AUTH_DISABLED=true` (frontend) skips sign-in.
 - **Development:** `cd frontend && npm run dev` serves the frontend on port 5173 with the API proxied to 7860. Backend details and tests are in [backend/README.md](backend/README.md).
 
+![Ledger: today's screenings, triage queue and findings by disease](docs/images/dashboard.png)
+
+![Result reveal for a glaucoma screening: four readings against their thresholds and the Grad-CAM regions](docs/images/result.png)
+
+The screenshots use the stored demo results (`USE_MOCKS=true`, `DEMO_FIXTURES=true`), which is why they read "DEMO RESULT". Regenerate them with `cd frontend && npm run e2e:screenshots`.
+
+### End-to-end, accessibility and responsive tests
+
+```bash
+cd frontend
+npx playwright install chromium   # once, downloads the test browser
+npm run e2e                       # live model (CPU), about 2-3 minutes
+npm run e2e:mocks                 # USE_MOCKS=true + DEMO_FIXTURES=true: the stored-result path
+```
+
+Playwright builds the frontend and starts its own backend on a throwaway database in the system temp folder (ports 7870 and 7871), so `backend/app.db` is never touched. Every test file resets the demo data first (`POST /api/v1/demo/reset`), so runs are repeatable. It finds Python in the repo `.venv`, or uses `E2E_PYTHON=/path/to/python`.
+
+| File | What it checks |
+|---|---|
+| `e2e/demo-path.spec.ts` | The demo: sign in, Ledger numbers, new screening `P-0180` with `cataract_354_right.jpg`, analyze ("Possible: Cataract", or "Model offline" with mocks), a normal photo ("Not detected."), a review, and the model card |
+| `e2e/screenings-list.spec.ts` | Search plus status filter equal the API; state survives reload and back/forward; pagination past 20 rows; both empty states; the error state with retry; table at 1280 px and cards at 375 px; keyboard access |
+| `e2e/screening-crud.spec.ts` | Create with a photo (a double click still makes one screening); a GIF and a file over 10 MB blocked in the browser; a broken JPEG rejected by the server (415); edit; replace photo with its warning; delete |
+| `e2e/result.spec.ts` | Every probability, threshold, `<meter>` and Positive/Not detected label equals the API; seed 6 (myopia under its threshold); the amber "Model offline" notice; seeded reviews; the review form by keyboard |
+| `e2e/a11y.spec.ts` | Every page at 1280, 768 and 375 px: no serious or critical [axe-core](https://github.com/dequelabs/axe-core) violation (WCAG 2.1 A/AA rules), no horizontal scroll, a visible focus indicator on everything Tab reaches, and no keyboard trap |
+
 ## Results
 
 Held-out test set (959 eyes from patients not seen in training). Thresholds are sensitivity-first and predictions are averaged over each photo and its mirror, so precision is lower than recall by design. Generated from `outputs/metrics.json` with:

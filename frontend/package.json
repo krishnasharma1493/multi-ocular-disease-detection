@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "e2e": "playwright test",
+    "e2e:mocks": "E2E_MOCKS=true playwright test",
+    "e2e:screenshots": "SCREENSHOTS=1 E2E_MOCKS=true playwright test e2e/screenshots.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.1",
@@ -20,6 +23,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

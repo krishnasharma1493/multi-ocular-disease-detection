@@ -231,7 +231,7 @@ export function CapturePage() {
           <div aria-live="polite">{under}</div>
           <input ref={fileIn} id="photo-file" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" className="sr-only" tabIndex={-1} disabled={busy}
             onChange={(e) => { place(e.target.files?.[0]); e.target.value = ''; }} />
-          <input ref={camIn} id="photo-camera" type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={busy}
+          <input ref={camIn} id="photo-camera" type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={busy} aria-label="Take a photo with the camera"
             onChange={(e) => { place(e.target.files?.[0]); e.target.value = ''; }} />
         </div>
         <div className="callout-col">

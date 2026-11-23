@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     PORT: int = 7860
 
     DATABASE_URL: str = "sqlite:///./app.db"
+    # NEI reference passages for the chat: a separate SQLite file, never mixed with patient data
+    KNOWLEDGE_DB: str = "./knowledge.db"
 
     # Empty = a random key is generated on first start and kept in backend/.jwt_secret (git-ignored),
     # so the signing key is never published. Set it explicitly for any shared deployment.
@@ -50,6 +52,12 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_MB: int = Field(default=10, ge=1, le=25)
 
+    # Eye-health chat (server-side only: never put the key in the frontend or a VITE_* variable)
+    LLM_PROVIDER: Literal["gemini"] = "gemini"
+    GEMINI_API_KEY: str = ""        # empty = chat answers 503 CHAT_UNAVAILABLE; results still work
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    LLM_TIMEOUT_S: float = Field(default=20, gt=0, le=120)
+
     # Built React app (npm run build) served on the same port as the API
     FRONTEND_DIST: str = "../frontend/dist"
 
@@ -73,6 +81,10 @@ class Settings(BaseSettings):
         if self.DATABASE_URL.startswith(prefix) and not self.DATABASE_URL.startswith(prefix + "/"):
             return prefix + str(self._resolve(self.DATABASE_URL[len(prefix):]))
         return self.DATABASE_URL
+
+    @property
+    def knowledge_db_path(self) -> Path:
+        return self._resolve(self.KNOWLEDGE_DB)
 
     @property
     def model_checkpoint_path(self) -> Path:

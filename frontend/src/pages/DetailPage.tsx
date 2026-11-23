@@ -6,6 +6,7 @@ import { apiError, apiErrorMessage, parseUtc, type Eye, type ReviewDecision, typ
 import { env } from '../lib/env';
 import { COLORS, TREATMENT, dayStamp, eyeCode, eyeLong, eyeWord, fileSize, hhmm, pct, sentence, summarize, byProbability } from '../lib/format';
 import { EyeDots, Lens } from '../components/Lens';
+import { ChatPanel } from '../components/ChatPanel';
 import { Loading, QueryError, useFocusHeading } from '../components/States';
 
 const READS: [ReviewDecision, string, string][] = [['agree', '✓', 'Agree'], ['disagree', '✕', 'Disagree'], ['unsure', '?', 'Unsure']];
@@ -291,6 +292,7 @@ export function DetailPage() {
         </section>
       </div>
       <ReviewSection s={s} />
+      {s.result && <ChatPanel screeningId={s.id} />}
       {editing && <EditDialog s={s} onClose={() => setEditing(false)} />}
     </main>
   );
