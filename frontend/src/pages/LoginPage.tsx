@@ -58,7 +58,7 @@ export function LoginPage() {
 
   return (
     <div className="login">
-      <div className="login-left">
+      <header className="login-left">
         <div className="login-top">
           <Logo />
           <span className="login-brand">RetinaScreen</span>
@@ -76,7 +76,7 @@ export function LoginPage() {
             MYOPIA · CATARACT · GLAUCOMA · DIABETIC RETINOPATHY
           </div>
         </div>
-      </div>
+      </header>
       <div className="login-right">
         <svg className="login-target" width="620" height="620" viewBox="0 0 620 620" aria-hidden="true">
           <circle cx="310" cy="310" r="300" fill="none" stroke="#DCD4C3" />

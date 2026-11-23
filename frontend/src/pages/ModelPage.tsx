@@ -36,7 +36,7 @@ function Gauge({ d }: { d: DiseaseCard }) {
   const weak = d.odir_ap != null && d.odir_ap < 0.6;
   return (
     <div className="gauge">
-      <h3>{sentence(d.disease)}</h3>
+      <h2>{sentence(d.disease)}</h2>
       <svg width="240" height="210" viewBox="0 0 240 210" style={{ overflow: 'visible' }} role="img" aria-label={`${d.disease}: test AUC ${num2(d.test_roc_auc)}, AP ${num2(d.test_ap)}`}>
         <path d={`M${s}A${R} ${R} 0 1 1 ${e}`} fill="none" stroke="currentColor" strokeWidth="1" />
         {ticks}{labs}
