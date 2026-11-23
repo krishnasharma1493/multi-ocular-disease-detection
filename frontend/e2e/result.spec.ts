@@ -57,7 +57,7 @@ test('model offline: a new photo gets the amber notice, never a made-up result',
 });
 
 test('seeded reviews show, and the review form works by keyboard', async ({ page }) => {
-  test.skip(!MOCKS, 'seeded reviews exist only with stored results (npm run e2e:mocks)');
+  test.skip(true, 'the clinician review box is hidden for patients (#24); remove this skip if it returns');
   await signIn(page);
   await page.goto('/screenings/2');
   await expect(page.getByRole('list', { name: 'Earlier reads, newest first' })).toContainText('Agree');
