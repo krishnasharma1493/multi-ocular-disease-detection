@@ -22,6 +22,7 @@ Sign in as `demo@example.com` or `judge@example.com` with `camp-S3HqmECzyZSY` (p
 |---|---|
 | `python -m app.seed --reset` | Drops tables and uploaded photos, reseeds users, 8 screenings and 2 reviews (< 1 s). |
 | `python -m app.fixtures` | Runs the **real** model on every seeded photo and rewrites `seed_data/signature_fixtures.json` (with each photo's sha256 and Grad-CAM maps). |
+| `python -m knowledge.fetch_nei` | Re-downloads the NEI reference pages for the chat into `knowledge/sources/` (see [knowledge/README.md](knowledge/README.md)). The search index `knowledge.db` rebuilds itself at start-up when they change. |
 | `python -m pytest -q` | Smoke tests with `USE_MOCKS=true`, a temp database and temp uploads (no GPU, no weights). |
 
 ## Fallbacks
