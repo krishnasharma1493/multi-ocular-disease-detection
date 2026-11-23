@@ -106,11 +106,12 @@ def test_quality_reasons():
     ok = image_quality(_fundus())
     assert ok.ok and ok.kind == "full fundus" and ok.minimum == MIN_SHARPNESS
     black = image_quality(Image.new("RGB", (400, 400)))
-    assert not black.ok and "almost entirely black" in black.reason
+    assert not black.ok and "almost entirely black" in black.reason and "retina" in black.reason
     blue = image_quality(Image.new("RGB", (400, 400), (20, 60, 200)))
     assert not blue.ok and "colours" in blue.reason
     blurred = image_quality(_fundus().filter(ImageFilter.GaussianBlur(12)))
-    assert not blurred.ok and blurred.reason.startswith("Too blurred") and "full fundus" in blurred.reason
+    assert not blurred.ok and blurred.reason.startswith("This photo is too blurry") and blurred.kind == "full fundus"
+    assert blurred.sharpness < blurred.minimum and "SHARPNESS" in blurred.detail
 
 
 def test_disc_closeup_gets_its_own_minimum():
@@ -142,6 +143,6 @@ def test_upload_rejection_gives_the_reason(client, auth):
     r = client.put(f"{API}/screenings/{sid}/image", headers=auth, files={"file": ("blur.jpg", buf.getvalue(), "image/jpeg")})
     body = r.json()["error"]
     assert r.status_code == 422 and body["code"] == "IMAGE_QUALITY"
-    assert body["message"].startswith("Too blurred to screen") and "FULL FUNDUS" in body["fields"]["file"][0]
+    assert body["message"].startswith("This photo is too blurry to check") and "FULL FUNDUS" in body["fields"]["file"][0]
     assert np.isfinite(float(body["fields"]["file"][0].split()[1]))
     assert client.delete(f"{API}/screenings/{sid}", headers=auth).status_code == 200  # leave the seeded counts as they were

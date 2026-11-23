@@ -97,23 +97,25 @@ def image_quality(image: Image.Image) -> Quality:
     inner = cv2.erode(mask.astype(np.uint8), np.ones((15, 15), np.uint8)) > 0
     if inner.sum() < 1000:
         return Quality(0.0, MIN_SHARPNESS, "unknown", False,
-                       "No fundus found: the photo is almost entirely black")
+                       "We couldn't find a retina in this photo: it is almost entirely black. "
+                       "Retake it with the retina in view, or upload a different photo.")
     lap = cv2.Laplacian(cv2.cvtColor(small, cv2.COLOR_RGB2GRAY), cv2.CV_64F)
     sharpness = float(np.clip(np.log10(lap[inner].var() + 1) / 2, 0, 1))
     red, blue = small[..., 0][mask].mean(), small[..., 2][mask].mean()
     if mask.mean() <= 0.2:
         return Quality(sharpness, MIN_SHARPNESS, "unknown", False,
-                       "Not a fundus photo: the retina covers too little of the image")
+                       "This doesn't look like a retina photo: the retina covers too little of the image. "
+                       "Retake it closer, or upload a different photo.")
     if red <= blue:
         return Quality(sharpness, MIN_SHARPNESS, "unknown", False,
-                       "Not a fundus photo: the colours don't look like a retina (it should be mostly red-orange)")
+                       "This doesn't look like a retina photo: the colours are wrong (a retina looks red-orange). "
+                       "Upload a fundus photo instead.")
     # A round full-fundus field covers at most ~87% of its square (ODIR max 0.865); close-ups fill the frame
     disc = mask.mean() >= 0.90
     kind, minimum = ("disc close-up", MIN_SHARPNESS_DISC) if disc else ("full fundus", MIN_SHARPNESS)
     if sharpness < minimum:
         return Quality(sharpness, minimum, kind, False,
-                       f"Too blurred to screen: sharpness {sharpness:.3f} is below the {minimum:.2f} "
-                       f"a {kind} photo needs. Refocus and retake")
+                       "This photo is too blurry to check. Hold still and retake it, or upload a sharper copy.")
     return Quality(sharpness, minimum, kind, True, None)
 
 

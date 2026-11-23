@@ -4,18 +4,20 @@ from typing import Literal
 from pydantic import model_validator
 from sqlmodel import Field, SQLModel
 
-from app.modules.screenings.models import Eye, ScreeningBase, ScreeningStatus
+from app.modules.screenings.models import Eye, ImageSource, ScreeningBase, ScreeningStatus
 
 
 class ScreeningCreate(SQLModel):
-    patient_ref: str = Field(min_length=1, max_length=40)
+    patient_ref: str = Field(default="Me", min_length=1, max_length=40)
     eye: Eye = Eye.unknown
+    image_source: ImageSource = ImageSource.unknown
     notes: str | None = Field(default=None, max_length=2000)
 
 
 class ScreeningUpdate(SQLModel):
     patient_ref: str | None = Field(default=None, min_length=1, max_length=40)
     eye: Eye | None = None
+    image_source: ImageSource | None = None  # changing it removes the uploaded photo and its result
     notes: str | None = Field(default=None, max_length=2000)
     status: ScreeningStatus | None = None
 

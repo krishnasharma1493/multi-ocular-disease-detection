@@ -3,6 +3,7 @@ from collections.abc import Iterator
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.core.config import settings
+from app.modules.screenings.migrate import ensure_screening_columns
 from app.modules.users.migrate import ensure_user_columns
 
 _is_sqlite = settings.database_url.startswith("sqlite")
@@ -18,6 +19,7 @@ def init_db() -> None:
 
     SQLModel.metadata.create_all(engine)
     ensure_user_columns(engine)
+    ensure_screening_columns(engine)
 
 
 def reset_db() -> None:

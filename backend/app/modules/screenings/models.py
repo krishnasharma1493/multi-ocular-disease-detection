@@ -20,9 +20,17 @@ class Eye(str, Enum):
     unknown = "unknown"
 
 
+class ImageSource(str, Enum):
+    """Where the photo came from. Only clinic_fundus is a source the model has been evaluated on."""
+    clinic_fundus = "clinic_fundus"  # a fundus photo from an eye clinic
+    phone_20d = "phone_20d"          # a smartphone photo taken through a +20D lens (not validated)
+    unknown = "unknown"              # not recorded (older screenings)
+
+
 class ScreeningBase(SQLModel):
-    patient_ref: str = Field(min_length=1, max_length=40)  # synthetic reference such as "P-0147"
+    patient_ref: str = Field(default="Me", min_length=1, max_length=40)  # patients never type one; camp use: "P-0147"
     eye: Eye = Eye.unknown
+    image_source: ImageSource = ImageSource.unknown
     notes: str | None = Field(default=None, max_length=2000)
     status: ScreeningStatus = ScreeningStatus.pending
 

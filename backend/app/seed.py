@@ -16,7 +16,7 @@ from sqlmodel import Session, select
 from app.core.config import BACKEND_DIR, settings
 from app.core.db import engine, init_db, reset_db
 from app.modules.reviews.models import Review, ReviewDecision
-from app.modules.screenings.models import Eye, Screening, ScreeningStatus
+from app.modules.screenings.models import Eye, ImageSource, Screening, ScreeningStatus
 from app.modules.screenings.service import fixture_result, image_sha256, load_fixtures
 from app.modules.users.models import User
 from app.utils.time import utcnow
@@ -56,6 +56,7 @@ def seed(session: Session) -> None:
             owner_id=users[s["owner"].lower()].id,
             patient_ref=s["patient_ref"],
             eye=Eye(s.get("eye", "unknown")),
+            image_source=ImageSource(s.get("image_source", "clinic_fundus" if s.get("image") else "unknown")),
             notes=s.get("notes"),
             status=ScreeningStatus(s.get("status", "pending")),
             image_filename=filename,

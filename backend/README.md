@@ -92,3 +92,9 @@ Screening statuses are `pending`, `analyzed` and `reviewed`. The PRD's `refer` f
 ## Security audit
 
 `pip-audit` 2.10.1 was run against `requirements.lock.txt` on 2026-11-03. It flagged known advisories across 5 packages (`brotli` 1.2.0, `certifi` 2026.7.22, `filelock` 4.0.6, `pillow` 12.3.0, and `setuptools` 84.0.0). In accordance with the project's Version Safety Rule, pinned lock versions are preserved and documented.
+
+## Image source and phone + 20D photos
+
+Each screening records where its photo came from: `image_source` is `clinic_fundus`, `phone_20d` or `unknown` (older rows, set by a start-up `ALTER TABLE`). Only `clinic_fundus` is a source the model has been evaluated on. `patient_ref` defaults to `"Me"`.
+
+For `phone_20d` uploads, `app/modules/screenings/phone20d.py` finds the round, bright, reddish retina view, blacks out everything outside it, rotates it 180° and stores that prepared image for analysis (the original upload is kept beside it, recorded in `image_meta.original`). It rejects, with a plain reason (422 `IMAGE_QUALITY`), photos with no usable circle, a circle that is too small or cut off by the frame, or more than 8% near-white glare inside the circle. Changing `image_source` on a screening that already has a photo removes the photo and its result. Accuracy on real phone photos has not been validated.

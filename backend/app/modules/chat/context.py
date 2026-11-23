@@ -32,8 +32,8 @@ class ChatContext:
 
 
 def image_source(screening: Screening) -> str:
-    # The image_source column is added by another PR; until then every screening reads as "unknown"
-    return getattr(screening, "image_source", None) or "unknown"
+    value = getattr(screening, "image_source", None) or "unknown"
+    return getattr(value, "value", value)  # the plain string, never "ImageSource.phone_20d"
 
 
 def _when(value: datetime | None) -> str:
