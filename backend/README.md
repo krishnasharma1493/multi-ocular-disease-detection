@@ -14,7 +14,7 @@ python -m app.seed --reset                 # tables + eight seeded ODIR test-spl
 uvicorn app.main:app --port 7860           # http://127.0.0.1:7860 , API docs at /docs
 ```
 
-Sign in as `demo@example.com` or `judge@example.com` with `camp-S3HqmECzyZSY` (public demo password; override `DEMO_PASSWORD` in `.env`). With no `JWT_SECRET`, a random signing key is generated on first start and kept in `backend/.jwt_secret` (git-ignored). `.env` values are validated at start-up; a too-short `JWT_SECRET` / `DEMO_PASSWORD` stops the server with a readable message. Relative paths resolve against `backend/`.
+Sign in as `demo@example.com` or `judge@example.com` with `camp-S3HqmECzyZSY` (public demo password; override `DEMO_PASSWORD` in `.env`). New patient accounts can be registered via `POST /api/v1/auth/register` with individual passwords hashed using `hashlib.scrypt` (with a random salt per password). With no `JWT_SECRET`, a random signing key is generated on first start and kept in `backend/.jwt_secret` (git-ignored). `.env` values are validated at start-up; a too-short `JWT_SECRET` / `DEMO_PASSWORD` stops the server with a readable message. Relative paths resolve against `backend/`.
 
 ## Commands
 
@@ -32,7 +32,7 @@ Sign in as `demo@example.com` or `judge@example.com` with `camp-S3HqmECzyZSY` (p
 
 ## Endpoints (`/api/v1`, see `/docs`)
 
-`POST /auth/login` · `GET /users/me` · `GET /screenings?page&limit&q&status` · `GET /screenings/stats` · `POST /screenings` · `GET|PATCH|DELETE /screenings/{id}` · `PUT|GET /screenings/{id}/image` · `POST /screenings/{id}/analyze` · `GET|POST /screenings/{id}/reviews` · `GET|POST /screenings/{id}/chat` · `GET /model` · `POST /demo/reset` (admin) · `GET /health`.
+`POST /auth/register`· `POST /auth/login` · `GET /users/me` · `GET /screenings?page&limit&q&status` · `GET /screenings/stats` · `POST /screenings` · `GET|PATCH|DELETE /screenings/{id}` · `PUT|GET /screenings/{id}/image` · `POST /screenings/{id}/analyze` · `GET|POST /screenings/{id}/reviews` · `GET|POST /screenings/{id}/chat` · `GET /model` · `POST /demo/reset` (admin) · `GET /health`.
 
 Errors always use `{"success": false, "error": {"code", "message", "fields"?}}`: 400 `VALIDATION_ERROR` / `NO_IMAGE`, 401 `UNAUTHORIZED`, 403 `FORBIDDEN`, 404 `NOT_FOUND`, 409 `CONFLICT`, 413 `PAYLOAD_TOO_LARGE`, 415 `UNSUPPORTED_MEDIA_TYPE`, 422 `IMAGE_QUALITY`, 429 `RATE_LIMITED`, 503 `MODEL_OFFLINE` / `CHAT_UNAVAILABLE`.
 
