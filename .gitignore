@@ -49,6 +49,7 @@ backend/.jwt_secret
 backend/app.db
 backend/*.db
 backend/knowledge.db
+backend/scripts/chat_eval_results/
 backend/uploads/
 frontend/node_modules/
 frontend/dist/
