@@ -48,8 +48,8 @@ export function NotFound({ path }: { path: string }) {
           <div className="chart-row"><span className="n">3</span><span className="chart-w" style={{ font: '500 clamp(30px,5vw,72px)/1.15 var(--serif)', letterSpacing: '0.12em' }}>FOUND</span><span className="acuity">20/70</span></div>
         </div>
         <div className="state-actions">
-          <span className="eyebrow" style={{ fontSize: 11, letterSpacing: '0.1em' }}>ERR 404 · {path.toUpperCase()} IS NOT IN THE LEDGER</span>
-          <Link className="link" to="/">← Back to ledger</Link>
+          <span className="eyebrow" style={{ fontSize: 11, letterSpacing: '0.1em' }}>ERR 404 · {path.toUpperCase()} — This screening isn't in your account.</span>
+          <Link className="link" to="/">← Back to my screenings</Link>
         </div>
       </div>
       <div style={{ justifySelf: 'center' }}><Lens size={small ? 260 : 380} state="empty" /></div>
@@ -61,14 +61,14 @@ export function Offline({ onRetry }: { onRetry: () => void }) {
   const h = useFocusHeading<HTMLHeadingElement>();
   const small = useSmall();
   const [last] = useState(() => new Date());
-  useEffect(() => { document.title = 'Instrument offline · RetinaScreen'; }, []);
+  useEffect(() => { document.title = 'Service offline · RetinaScreen'; }, []);
   return (
     <main id="main" className="offline-page">
       <Lens size={small ? 280 : 420} state="offline" />
       <div className="stack-words" role="alert">
-        <span className="eyebrow" style={{ marginBottom: 18 }}>NO RESPONSE FROM ANALYSIS SERVER</span>
+        <span className="eyebrow" style={{ marginBottom: 18 }}>CANNOT REACH ANALYSIS SERVICE</span>
         <h1 ref={h} tabIndex={-1} className="stack-h">
-          <span className="w1" style={{ fontSize: 'clamp(52px,7vw,96px)' }}>INSTRUMENT</span>
+          <span className="w1" style={{ fontSize: 'clamp(52px,7vw,96px)' }}>SERVICE</span>
           <span className="w2" style={{ fontSize: 'clamp(34px,4.5vw,62px)', letterSpacing: '0.08em' }}>OFFLINE</span>
           <span className="w3" style={{ fontSize: 'clamp(24px,2.8vw,40px)', letterSpacing: '0.12em' }}>— RETRY</span>
         </h1>
@@ -76,7 +76,7 @@ export function Offline({ onRetry }: { onRetry: () => void }) {
           <button type="button" className="btn-primary" style={{ height: 52, fontSize: 15 }} onClick={onRetry}>
             Retry connection<span className="glyph" aria-hidden="true">↻</span>
           </button>
-          <span className="eyebrow" style={{ fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>NO CONTACT AT {hhmmss(last)}</span>
+          <span className="eyebrow" style={{ fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>NO CONNECTION AT {hhmmss(last)}</span>
         </div>
       </div>
     </main>

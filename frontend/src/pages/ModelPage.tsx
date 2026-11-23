@@ -36,7 +36,7 @@ function Gauge({ d }: { d: DiseaseCard }) {
   const weak = d.odir_ap != null && d.odir_ap < 0.6;
   return (
     <div className="gauge">
-      <h3>{sentence(d.disease)}</h3>
+      <h2>{sentence(d.disease)}</h2>
       <svg width="240" height="210" viewBox="0 0 240 210" style={{ overflow: 'visible' }} role="img" aria-label={`${d.disease}: test AUC ${num2(d.test_roc_auc)}, AP ${num2(d.test_ap)}`}>
         <path d={`M${s}A${R} ${R} 0 1 1 ${e}`} fill="none" stroke="currentColor" strokeWidth="1" />
         {ticks}{labs}
@@ -56,8 +56,8 @@ function Gauge({ d }: { d: DiseaseCard }) {
 export function ModelPage() {
   const card = useModelCard();
   const h = useFocusHeading<HTMLHeadingElement>(!!card.data);
-  useEffect(() => { document.title = 'Model · RetinaScreen'; }, [card.data]);
-  if (card.isPending) return <Loading label="READING THE CALIBRATION CERTIFICATE" />;
+  useEffect(() => { document.title = 'About the model · RetinaScreen'; }, [card.data]);
+  if (card.isPending) return <Loading label="READING MODEL DETAILS" />;
   if (card.error) return <QueryError error={card.error} path="/model" onRetry={() => card.refetch()} />;
   const m = card.data;
   const pretty = m.model_name === 'efficientnet_b0' ? 'EfficientNet-B0' : m.model_name;
@@ -68,8 +68,8 @@ export function ModelPage() {
       <div className="cert-wrap"><div className="cert-outer"><div className="cert">
         <div className="cert-top">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <span className="eyebrow" style={{ letterSpacing: '0.18em' }}>INSTRUMENT CALIBRATION CERTIFICATE</span>
-            <h1 ref={h} tabIndex={-1}>Certificate of calibration</h1>
+            <span className="eyebrow" style={{ letterSpacing: '0.18em' }}>AI MODEL PERFORMANCE & EVALUATION</span>
+            <h1 ref={h} tabIndex={-1}>About the model</h1>
           </div>
           <div className="serial">
             <span className="eyebrow">CHECKPOINT</span>
@@ -92,7 +92,7 @@ export function ModelPage() {
         {weakest && weakest.odir_ap != null && weakest.odir_ap < 0.6 && (
           <div className="notice notice-amber">
             <span className="label">◐ WEAKEST NUMBER</span>
-            <p>{sentence(weakest.disease)} on everyday ODIR camp photos scores an AP of {num2(weakest.odir_ap)}, far below its {num2(weakest.test_ap)} on the full test set. Treat {weakest.disease.toLowerCase()} results on camp photos with extra caution.</p>
+            <p>{sentence(weakest.disease)} on everyday ODIR clinic photos scores an AP of {num2(weakest.odir_ap)}, far below its {num2(weakest.test_ap)} on the full test set. Treat {weakest.disease.toLowerCase()} results on clinic photos with extra caution.</p>
           </div>
         )}
         <div className="cert-foot">

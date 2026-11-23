@@ -14,15 +14,16 @@ export function Footer() {
 }
 
 const TABS: [string, string][] = [
-  ['/', 'Ledger'],
-  ['/screenings', 'Screenings'],
+  ['/', 'My screenings'],
+  ['/screenings', 'All results'],
   ['/screenings/new', 'New screening'],
-  ['/model', 'Model'],
+  ['/model', 'About the model'],
 ];
 
 export function AppShell() {
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [today] = useState(() => new Date());
   const location = useLocation();
   const navRef = useRef<HTMLElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -50,7 +51,7 @@ export function AppShell() {
     <div className="frame">
       <a className="skip" href="#main">Skip to content</a>
       <header className="bezel">
-        <Link className="brand" to="/" aria-label="RetinaScreen, ledger"><Logo /><span>RetinaScreen</span></Link>
+        <Link className="brand" to="/" aria-label="RetinaScreen, my screenings"><Logo /><span>RetinaScreen</span></Link>
         <button ref={btnRef} type="button" className="menu-btn" aria-expanded={open} aria-controls="nav" onClick={() => setOpen((o) => !o)}>
           {open ? 'CLOSE' : 'MENU'}
         </button>
@@ -65,7 +66,7 @@ export function AppShell() {
         </nav>
         <div className="bezel-meta">
           <b>Today</b>
-          <span className="eyebrow">{dayStamp(new Date())}</span>
+          <span className="eyebrow">{dayStamp(today)}</span>
         </div>
         <span className="bezel-rule" aria-hidden="true" />
         <button type="button" className="signout" onClick={logout}>Sign out</button>

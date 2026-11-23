@@ -1,202 +1,347 @@
-import { useEffect, useState } from 'react';
+
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useScreeningStats, useScreenings } from '../features/screenings/api';
+import { useScreenings } from '../features/screenings/api';
 import type { Screening } from '../lib/api/types';
-import { COLORS, DISEASES, STATUS_LABEL, dayStamp, eyeCode, eyeWord, hhmm, sameDay, summarize, type Status, type Summary } from '../lib/format';
+import {
+  STATUS_LABEL,
+  dayStamp,
+  eyeCode,
+  eyeWord,
+  summarize,
+  type Summary,
+} from '../lib/format';
 import { EyeDots, Lens } from '../components/Lens';
 import { Loading, QueryError, useFocusHeading } from '../components/States';
 
-type Item = { s: Screening; m: Summary };
-const eyesLabel = (n: number) => `${n} ${n === 1 ? 'eye' : 'eyes'}`;
-const ORDER: Status[] = ['possible', 'review', 'clear', 'pending'];
+const PAGE_SIZE = 5;
 
-function Ruler({ items }: { items: Item[] }) {
-  const start = new Date(items[0].m.created); start.setMinutes(0, 0, 0);
-  const lastHour = new Date(items[items.length - 1].m.created); lastHour.setMinutes(0, 0, 0);
-  const hours = Math.max(1, Math.round((lastHour.getTime() - start.getTime()) / 3600000) + 1);
-  const span = hours * 60;
-  const seen = new Set<string>();
-  let lastLabel = -Infinity;
-  const ticks = items.map(({ s, m }) => {
-    const left = ((m.created.getTime() - start.getTime()) / 60000) / span * 100;
-    const g = STATUS_LABEL[m.status];
-    let lab = '';
-    if (!seen.has(s.patient_ref) && left - lastLabel >= 8) { lab = s.patient_ref; lastLabel = left; }
-    seen.add(s.patient_ref);
-    return (
-      <span key={s.id} className="tick" style={{ left: `${left.toFixed(2)}%` }}>
-        <span className="g" style={{ color: g.color }}>{g.glyph}</span>
-        <span className="bar" style={{ background: g.color }} />
-        <span className="lab">{lab}</span>
-      </span>
-    );
-  });
-  const step = hours > 10 ? 2 : 1;
-  const labels = [];
-  for (let i = 0; i <= hours; i += step) {
-    labels.push(<span key={i} className="hour" style={{ left: `${(i / hours * 100).toFixed(2)}%` }}>{hhmm(new Date(start.getTime() + i * 3600000))}</span>);
+type Item = {
+  s: Screening;
+  m: Summary;
+};
+
+function getStatusDetails(s: Screening) {
+  if (s.status === 'pending') {
+    if (!s.has_image) {
+      return {
+        label: 'Add a photo',
+        to: `/screenings/${s.id}`,
+        actionText: 'Add a photo',
+        cls: 'mute',
+      };
+    }
+
+    return {
+      label: 'Waiting for analysis',
+      to: `/screenings/${s.id}/scan`,
+      actionText: 'View screening',
+      cls: 'c-rev',
+    };
   }
-  return (
-    <div className="axis-wrap" aria-hidden="true">
-      <div className="axis" style={{ top: 64, height: 1, background: 'var(--ink)' }} />
-      <div className="axis ruler-minor" style={{ top: 56, height: 8, backgroundSize: `${(100 / hours / 12).toFixed(3)}% 100%` }} />
-      <div className="axis ruler-major" style={{ top: 48, height: 16, backgroundSize: `${(100 / hours).toFixed(3)}% 100%` }} />
-      <div className="axis" style={{ top: 0, bottom: 0 }}>{ticks}{labels}</div>
-    </div>
-  );
-}
 
-function FindingsChart({ items }: { items: Item[] }) {
-  const n = items.length, radii = [150, 120, 90, 60];
-  const counts = DISEASES.map((name) => {
-    let pos = 0, near = 0;
-    items.forEach(({ m }) => {
-      if (m.rows.find((r) => r.disease === name)?.positive) pos++;
-      else if (m.near?.disease === name) near++;
-    });
-    return { name, pos, near };
-  });
-  const short: Record<string, string> = { 'Diabetic Retinopathy': 'DIABETIC RET.' };
-  const aria = `Findings by disease, of ${eyesLabel(n)}: ` + counts.map((c) => `${c.name} ${c.pos} possible${c.near ? `, ${c.near} close to notch` : ''}`).join('; ') + '.';
-  return (
-    <svg width="360" height="360" viewBox="0 0 340 340" role="img" aria-label={aria} className="rings">
-      {radii.map((r) => (
-        <g key={r}>
-          <circle cx="170" cy="170" r={r} fill="none" stroke="#E4DDCD" strokeWidth="14" />
-          <circle cx="170" cy="170" r={r + 7} fill="none" stroke={COLORS.INK} strokeWidth="0.8" />
-          <circle cx="170" cy="170" r={r - 7} fill="none" stroke={COLORS.INK} strokeWidth="0.8" />
-        </g>
-      ))}
-      {counts.map((c, i) => {
-        const r = radii[i], unit = (2 * Math.PI * r) / Math.max(n, 1);
-        return (
-          <g key={c.name} transform="rotate(-90 170 170)">
-            {c.pos > 0 && <circle cx="170" cy="170" r={r} fill="none" stroke={COLORS.V} strokeWidth="14" strokeDasharray={`${(unit * c.pos).toFixed(1)} 10000`} />}
-            {c.near > 0 && <circle cx="170" cy="170" r={r} fill="none" stroke={COLORS.O} strokeWidth="14" strokeDasharray={`${(unit * c.near).toFixed(1)} 10000`} strokeDashoffset={(-unit * c.pos).toFixed(1)} />}
-          </g>
-        );
-      })}
-      {n > 1 && n <= 72 && (
-        <g stroke={COLORS.PAPER} strokeWidth="2.5">
-          {Array.from({ length: n }, (_, i) => {
-            const a = (i / n) * 2 * Math.PI;
-            return <line key={i} x1={170 + 160 * Math.sin(a)} y1={170 - 160 * Math.cos(a)} x2={170 + 50 * Math.sin(a)} y2={170 - 50 * Math.cos(a)} />;
-          })}
-        </g>
-      )}
-      <g fontFamily="IBM Plex Mono, monospace" fontSize="10.5" fontWeight="500" textAnchor="end" fill={COLORS.INK} style={{ whiteSpace: 'pre' }}>
-        {counts.map((c, i) => (
-          <text key={c.name} x="162" y={[8, 40, 70, 100][i]}>{`${short[c.name] ?? c.name.toUpperCase()}  ${c.pos}${c.near ? ` +${c.near}◐` : ''}`}</text>
-        ))}
-      </g>
-      <text x="170" y="166" textAnchor="middle" fontFamily="Newsreader, serif" fontSize="34" fontWeight="500" fill={COLORS.INK}>{n}</text>
-      <text x="170" y="186" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="9.5" letterSpacing="1.5" fill={COLORS.MUTE}>{n === 1 ? 'EYE' : 'EYES'}</text>
-    </svg>
-  );
+  return {
+    label: 'Result ready',
+    to: `/screenings/${s.id}`,
+    actionText: 'View result',
+    cls: 'c-clr',
+  };
 }
 
 function ItemRow({ s, m }: Item) {
+  const statusInfo = getStatusDetails(s);
   const g = STATUS_LABEL[m.status];
+
   const eye = eyeCode(s.eye);
+  const eyeDirection = eyeWord(s.eye);
+
+  const eyeLabel =
+    eyeDirection === 'left'
+      ? 'Left eye'
+      : eyeDirection === 'right'
+        ? 'Right eye'
+        : 'Eye unrecorded';
+
+  const dateFormatted = dayStamp(m.created);
+
   return (
-    <Link className="item" to={`/screenings/${s.id}`} aria-label={`${s.patient_ref}, ${eyeWord(s.eye)} eye, ${hhmm(m.created)}. ${m.verdict}. ${m.sub}.${s.latest_review === 'disagree' ? ' Reviewer disagrees.' : ''}`}>
+    <Link
+      className="item"
+      to={statusInfo.to}
+      aria-label={`Screening from ${dateFormatted}, ${eyeLabel}. Status: ${statusInfo.label}. ${m.verdict}. ${statusInfo.actionText}.`}
+    >
       <span className="hole" aria-hidden="true" />
+
       <span className="lens-thumb" aria-hidden="true">
-        {m.status === 'pending' ? <Lens size={72} state="empty" /> : <Lens size={72} values={m.vals} thresholds={m.ths} eye={eye ?? 'R'} />}
+        {m.status === 'pending' ? (
+          <Lens size={72} state="empty" />
+        ) : (
+          <Lens
+            size={72}
+            values={m.vals}
+            thresholds={m.ths}
+            eye={eye ?? 'R'}
+          />
+        )}
       </span>
+
       <span className="who" aria-hidden="true">
-        <span className="ref" title={s.patient_ref}>{s.patient_ref}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><EyeDots eye={eye} dot={9} /><span className="mono mute" style={{ fontSize: 11 }}>{hhmm(m.created)}</span></span>
+        <span
+          className="ref"
+          style={{
+            font: '600 15px/1.2 var(--sans)',
+            letterSpacing: '0.02em',
+          }}
+        >
+          {dateFormatted}
+        </span>
+
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <EyeDots eye={eye} dot={9} />
+
+          <span className="mono mute" style={{ fontSize: 11 }}>
+            {eyeLabel.toUpperCase()}
+          </span>
+        </span>
       </span>
-      <span className="what" aria-hidden="true"><b>{m.verdict}</b><span>{m.sub}</span></span>
-      <span className={`state ${g.cls}`} aria-hidden="true"><span>{g.word}</span>{s.latest_review === 'disagree' ? <span className="stamp-sm">✕ REVIEWER: DISAGREE</span> : s.status === 'reviewed' && <span className="mute" style={{ fontSize: 10 }}>✓ REVIEWED</span>}</span>
+
+      <span className="what" aria-hidden="true">
+        <b>{m.verdict}</b>
+        <span>{m.sub}</span>
+      </span>
+
+      <span
+        className={`state ${
+          m.status === 'pending' ? statusInfo.cls : g.cls
+        }`}
+        aria-hidden="true"
+      >
+        <span>{statusInfo.label}</span>
+
+        {s.latest_review === 'disagree' ? (
+          <span className="stamp-sm">✕ REVIEW DIFFERED</span>
+        ) : s.status === 'reviewed' ? (
+          <span className="mute" style={{ fontSize: 10 }}>
+            ✓ REVIEWED
+          </span>
+        ) : null}
+
+        <span
+          className="link"
+          style={{
+            fontSize: 12,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          {statusInfo.actionText} →
+        </span>
+      </span>
     </Link>
   );
 }
 
 export function LedgerPage() {
-  const list = useScreenings({ limit: 100 });
-  const stats = useScreeningStats();
-  const [small, setSmall] = useState(() => window.innerWidth < 760);
-  useEffect(() => {
-    const on = () => setSmall(window.innerWidth < 760);
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
-  }, []);
-  useEffect(() => { document.title = 'Ledger · RetinaScreen'; }, [list.data, stats.data]);
+  const list = useScreenings({
+    page: 1,
+    limit: PAGE_SIZE,
+  });
+
   const h = useFocusHeading<HTMLHeadingElement>(!!list.data);
 
-  if (list.isPending || stats.isPending) return <Loading label="OPENING THE LEDGER" />;
-  if (list.error || stats.error) return <QueryError error={list.error ?? stats.error} path="/" onRetry={() => { list.refetch(); stats.refetch(); }} />;
+  useEffect(() => {
+    document.title = 'My screenings · RetinaScreen';
+  }, []);
 
-  const now = new Date();
-  const items: Item[] = list.data.data.map((s) => ({ s, m: summarize(s) }))
-    .filter((it) => sameDay(it.m.created, now))
-    .sort((a, b) => a.m.created.getTime() - b.m.created.getTime());
-  const n = items.length;
-  const st = stats.data;
-  const totals = `${st.total} IN ALL · ${st.flagged} FLAGGED · ${st.by_status.pending} AWAITING ANALYSIS`;
+  if (list.isPending) {
+    return <Loading label="Loading your screenings" />;
+  }
 
-  if (!n) {
+  if (list.error) {
     return (
-      <main id="main">
-        <div className="ledger-head">
-          <div className="meta"><span>LEDGER · {dayStamp(now)} · NO SCREENINGS YET</span><span>{totals}</span></div>
-          <h1 ref={h} tabIndex={-1}>Today’s camp — 0 eyes screened</h1>
-        </div>
-        <div className="ruler-row empty">
-          <div className="axis-wrap" aria-hidden="true">
-            <div className="axis" style={{ top: 64, height: 1, background: 'var(--ink)' }} />
-            <div className="axis ruler-minor" style={{ top: 56, height: 8, backgroundSize: '5% 100%' }} />
-          </div>
-          <Link className="new-btn" to="/screenings/new"><span aria-hidden="true">+</span>New screening</Link>
-        </div>
-        <div className="empty-hero">
-          <Lens size={small ? 260 : 380} state="empty" />
-          <div className="stack-words">
-            <span className="w1">NO EYES</span><span className="w2">SCREENED</span><span className="w3">YET TODAY</span>
-            <p>Each photo you analyze is filed here as a specimen tag, ordered by urgency.{st.total > 0 && <> Earlier days are under <Link to="/screenings">Screenings</Link>.</>}</p>
-          </div>
-        </div>
-      </main>
+      <QueryError
+        error={list.error}
+        path="/"
+        onRetry={() => list.refetch()}
+      />
     );
   }
 
-  const byRef: Record<string, Set<string>> = {};
-  items.forEach(({ s }) => { (byRef[s.patient_ref] ??= new Set()).add(s.eye); });
-  const patients = Object.keys(byRef).length;
-  const both = Object.values(byRef).every((set) => set.has('left') && set.has('right'));
-  const urgency = (m: Summary) => (m.rows.length ? Math.max(...m.rows.map((r) => r.probability - r.threshold)) : -2);
-  const groups = ORDER.map((key) => ({ key, g: STATUS_LABEL[key], list: items.filter((it) => it.m.status === key).sort((a, b) => urgency(b.m) - urgency(a.m)) }))
-    .filter((grp) => grp.list.length);
-  const analyzed = items.filter((it) => it.m.status !== 'pending');
+  const data = list.data;
+
+  const items: Item[] = (data?.data ?? []).map((s) => ({
+    s,
+    m: summarize(s),
+  }));
+
+  const total = data?.pagination.total ?? 0;
+
+  const hasMore =
+    total > items.length ||
+    (data?.pagination.total_pages ?? 1) > 1;
 
   return (
     <main id="main">
-      <div className="ledger-head">
-        <div className="meta">
-          <span>LEDGER · {dayStamp(now)} · {hhmm(items[0].m.created)} – {hhmm(items[n - 1].m.created)}</span>
-          <span>{patients} {patients === 1 ? 'PATIENT' : 'PATIENTS'} · {both ? 'BOTH EYES' : eyesLabel(n).toUpperCase()}</span>
+      <div className="page-head">
+        <div className="titles">
+          <h1 ref={h} tabIndex={-1}>
+            Your eye screenings
+          </h1>
+
+          <p className="mute" style={{ fontSize: 16 }}>
+            View your previous screening results or start a new eye screening.
+          </p>
         </div>
-        <h1 ref={h} tabIndex={-1}>Today’s camp — {eyesLabel(n)} screened</h1>
       </div>
-      <div className="ruler-row"><Ruler items={items} /><Link className="new-btn" to="/screenings/new"><span aria-hidden="true">+</span>New screening</Link></div>
-      <div className="ledger-grid">
-        <section aria-labelledby="queue-h" className="col">
-          <div className="section-head"><h2 id="queue-h">Triage queue</h2><span className="eyebrow">ORDERED BY URGENCY</span></div>
-          {groups.map(({ key, g, list: rows }) => (
-            <div key={key} className="group">
-              <div className={`group-head ${g.cls}`}><span>{g.head}</span><span>{rows.length}</span></div>
-              {rows.map((it) => <ItemRow key={it.s.id} {...it} />)}
+
+      <div className="list-wrap">
+        {/* Start a screening */}
+        <section
+          aria-labelledby="start-h"
+          className="tag"
+          style={{
+            clipPath: 'none',
+            border: '1px solid var(--ink)',
+            padding: '24px 28px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <h2
+              id="start-h"
+              style={{
+                font: '500 28px/1.1 var(--serif)',
+                letterSpacing: '-0.015em',
+              }}
+            >
+              Start a screening
+            </h2>
+
+            <p
+              style={{
+                color: 'var(--body)',
+                fontSize: 15,
+                lineHeight: 1.5,
+                maxWidth: 680,
+              }}
+            >
+              Upload a fundus photo taken at an eye clinic or using a
+              compatible phone attachment with a 20D lens. We will first
+              check the photo quality and then screen for four eye diseases.
+            </p>
+
+            <div style={{ marginTop: 4 }}>
+              <Link
+                to="/screenings/new"
+                className="btn-primary"
+                style={{
+                  display: 'inline-flex',
+                  width: 'auto',
+                  padding: '0 24px',
+                  height: 48,
+                  fontSize: 15,
+                }}
+              >
+                <span>Start a screening</span>
+                <span className="glyph" aria-hidden="true">
+                  →
+                </span>
+              </Link>
             </div>
-          ))}
-          <Link className="link" to="/screenings">All screenings, search and filters →</Link>
+          </div>
         </section>
-        <section aria-labelledby="find-h" className="col" style={{ gap: 24 }}>
-          <div className="section-head"><h2 id="find-h">Findings by disease</h2><span className="eyebrow">OF {eyesLabel(analyzed.length).toUpperCase()}</span></div>
-          {analyzed.length ? <FindingsChart items={analyzed} /> : <p className="mute">No eye analyzed yet today.</p>}
-          <div className="legend"><span>ONE DIVISION = ONE EYE</span><span><span className="c-pos">▲</span> POSSIBLE · <span className="c-rev">◐</span> REVIEW</span></div>
-          <div className="legend" style={{ borderTop: 0, paddingTop: 0 }}><span>{totals}</span></div>
+
+        {/* Previous screening results */}
+        <section
+          aria-labelledby="results-h"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            marginTop: 8,
+          }}
+        >
+          <div className="section-head">
+            <h2 id="results-h">Your results</h2>
+          </div>
+
+          {!items.length ? (
+            <div className="empty-list" style={{ padding: '24px 0' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}
+              >
+                <h3
+                  style={{
+                    font: '500 28px/1.2 var(--serif)',
+                    margin: 0,
+                  }}
+                >
+                  No screenings yet
+                </h3>
+
+                <p
+                  style={{
+                    color: 'var(--graphite)',
+                    fontSize: 15,
+                    margin: 0,
+                    maxWidth: 540,
+                  }}
+                >
+                  Your previous screening results will appear here. Start
+                  your first screening to get started.
+                </p>
+
+                <div style={{ marginTop: 8 }}>
+                  <Link
+                    to="/screenings/new"
+                    className="btn-primary"
+                    style={{
+                      display: 'inline-flex',
+                      width: 'auto',
+                      padding: '0 22px',
+                      height: 48,
+                      fontSize: 15,
+                    }}
+                  >
+                    <span>Start a screening</span>
+                    <span className="glyph" aria-hidden="true">
+                      →
+                    </span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rows">
+              {items.map((item) => (
+                <ItemRow key={item.s.id} {...item} />
+              ))}
+
+              {hasMore && (
+                <div style={{ marginTop: 14 }}>
+                  <Link className="link" to="/screenings">
+                    See all results →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </div>
     </main>
