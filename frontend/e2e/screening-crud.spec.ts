@@ -8,14 +8,14 @@ test.beforeEach(async ({ request }) => resetDemo(request));
 test('create P-0180 with a photo, then it is in the list', async ({ page, request }) => {
   await signIn(page);
   await page.goto('/screenings/new');
-  await expect(page.getByRole('button', { name: /Analyze eye/ })).toBeDisabled();
-  await expect(page.getByText('NEEDS A PHOTO, A PATIENT REF AND AN EYE')).toBeVisible();
-  await page.getByLabel('PATIENT REF').fill('P-0180');
+  await expect(page.getByRole('button', { name: /Check my eye/ })).toBeDisabled();
+  await expect(page.getByText('NEEDS A PHOTO, WHERE THE PHOTO IS FROM AND AN EYE')).toBeVisible();
+  await page.getByLabel('A fundus photo from an eye clinic').check();
   await page.getByRole('radio', { name: 'Right eye (OD)' }).check();
   await page.locator('#photo-file').setInputFiles(seedImage('cataract_354_right.jpg'));
-  await page.getByRole('button', { name: /Analyze eye/ }).dblclick();  // a double click still makes one screening
+  await page.getByRole('button', { name: /Check my eye/ }).dblclick();  // a double click still makes one screening
   await page.waitForURL(/\/screenings\/\d+\/scan$/);
-  const list = await (await request.get(`${API}/screenings?q=P-0180`, { headers: bearer(await token(request)) })).json();
+  const list = await (await request.get(`${API}/screenings?q=Me`, { headers: bearer(await token(request)) })).json();
   expect(list.pagination.total).toBe(1);
   expect(list.data[0].has_image).toBe(true);
   expect(list.data[0].image.name).toBe('cataract_354_right.jpg');
@@ -29,13 +29,13 @@ test('client blocks a GIF and a file over 10 MB; the server rejects a broken JPE
   await expect(page.getByRole('alert')).toContainText('This file is GIF, not JPG or PNG.');
   await input.setInputFiles({ name: 'huge.jpg', mimeType: 'image/jpeg', buffer: Buffer.alloc(10.5 * 1024 * 1024, 0xff) });
   await expect(page.getByRole('alert')).toContainText('The limit is 10 MB.');
-  await expect(page.getByRole('button', { name: /Analyze eye/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Check my eye/ })).toBeDisabled();
 
   // Passes the client check (JPEG type, small) but is not a real image: the server's 415 is shown
-  await page.getByLabel('PATIENT REF').fill('P-0181');
+  await page.getByLabel('A fundus photo from an eye clinic').check();
   await page.getByRole('radio', { name: 'Left eye (OS)' }).check();
   await input.setInputFiles({ name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not really a jpeg') });
-  await page.getByRole('button', { name: /Analyze eye/ }).click();
+  await page.getByRole('button', { name: /Check my eye/ }).click();
   await expect(page.getByRole('alert')).toContainText('ERR · FILE TYPE');
   await expect(page.getByRole('alert')).toContainText('broken.jpg');
   await expect(page).toHaveURL(/\/screenings\/new$/);  // the user stays on the form with the error

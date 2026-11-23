@@ -476,6 +476,8 @@ h1, h2, p { margin: 0; }
 .list-wrap { padding: 28px var(--margin) 56px; display: flex; flex-direction: column; gap: 20px; }
 .filters { display: flex; gap: 40px; align-items: flex-end; flex-wrap: wrap; }
 .filters .search { width: 320px; max-width: 100%; }
+.source-opt { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; font: 400 14px/1.4 var(--sans); cursor: pointer; }
+.source-opt input { margin-top: 3px; accent-color: var(--ink); }
 .seg { display: flex; border: 1px solid var(--ink); width: max-content; max-width: 100%; flex-wrap: wrap; }
 .seg button { height: 44px; padding: 0 16px; border: 0; border-right: 1px solid var(--ink); background: var(--card); font: 600 11.5px/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
 .seg button:last-child { border-right: 0; }

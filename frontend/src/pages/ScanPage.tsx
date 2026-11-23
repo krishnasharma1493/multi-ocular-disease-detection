@@ -297,7 +297,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
               </div>
             )}
             <div className="scope" style={{ marginTop: 14 }}>Screens these four diseases only; other eye conditions are not checked.</div>
-            <Link className="link" style={{ marginTop: 18 }} to={`/screenings/${screening.id}`}>Open reviewer’s notes →</Link>
+            <Link className="link" style={{ marginTop: 18 }} to={`/screenings/${screening.id}`}>See your result and ask questions →</Link>
           </div>
         </div>
       </div>
@@ -314,7 +314,7 @@ export function ScanPage() {
   const started = useRef(false);
   const s = screening.data;
 
-  useEffect(() => { if (s) document.title = `${s.patient_ref}, ${eyeWord(s.eye)} eye · RetinaScreen`; }, [s]);
+  useEffect(() => { if (s) document.title = `${eyeWord(s.eye)} eye screening · RetinaScreen`; }, [s]);
   useEffect(() => {
     if (!s || started.current || s.result || !s.has_image) return;
     started.current = true;
@@ -328,7 +328,15 @@ export function ScanPage() {
   if (image.isPending && !image.url) return <Loading label="PLACING PHOTO" />;
   const result = analyze.data ?? s!.result ?? null;
   return (
-    <Flow screening={s!} photo={image.url} result={result} analyzeError={analyze.error}
-      onRetry={() => { analyze.reset(); analyze.mutate(id); }} />
+    <>
+      <Flow screening={s!} photo={image.url} result={result} analyzeError={analyze.error}
+        onRetry={() => { analyze.reset(); analyze.mutate(id); }} />
+      {s!.image_source !== 'clinic_fundus' && (
+        <div className="notice notice-amber" role="note" style={{ margin: '0 var(--margin) 24px' }}>
+          <span className="label">EXPERIMENTAL RESULT</span>
+          <p>This photo came from a phone with a 20D lens (or an unknown source). The model has not been tested on such photos, so treat this result as experimental, not as a reliable result.</p>
+        </div>
+      )}
+    </>
   );
 }
