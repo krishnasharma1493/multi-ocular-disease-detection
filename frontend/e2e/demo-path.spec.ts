@@ -17,11 +17,11 @@ test('sign in → ledger → new screening → analyze → normal result → rev
   // New screening P-0180 with the seeded cataract photo
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'New screening' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'New screening' })).toBeVisible();
-  await page.getByLabel('PATIENT REF').fill('P-0180');
+  await page.getByLabel('A fundus photo from an eye clinic').check();
   await page.getByRole('radio', { name: 'Right eye (OD)' }).check();
   await page.locator('#photo-file').setInputFiles(seedImage('cataract_354_right.jpg'));
   await expect(page.getByText('PHOTO PLACED')).toBeVisible();
-  await page.getByRole('button', { name: /Analyze eye/ }).click();
+  await page.getByRole('button', { name: /Check my eye/ }).click();
   await page.waitForURL(/\/screenings\/\d+\/scan$/);
   const newId = Number(page.url().match(/screenings\/(\d+)\/scan/)![1]);
 
@@ -35,12 +35,12 @@ test('sign in → ledger → new screening → analyze → normal result → rev
   } else {
     await expect(page.getByText(/LIVE MODEL OUTPUT · \d+ MS/)).toBeVisible({ timeout: 90_000 });
   }
-  await expect(page.getByRole('link', { name: /Open reviewer’s notes/ })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('link', { name: /See your result and ask questions/ })).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.verdict .words')).toHaveText('Possible: Cataract.');
 
   // A normal photo: the four-disease "not detected" line, never "healthy"
   await page.goto(MOCKS ? '/screenings/5' : '/screenings/5/scan');
-  if (!MOCKS) await expect(page.getByRole('link', { name: /Open reviewer’s notes/ })).toBeVisible({ timeout: 90_000 });
+  if (!MOCKS) await expect(page.getByRole('link', { name: /See your result and ask questions/ })).toBeVisible({ timeout: 90_000 });
   await expect(page.locator('.verdict .words')).toHaveText('Not detected.');
   await expect(page.getByText('Screens these four diseases only; other eye conditions are not checked.')).toBeVisible();
 

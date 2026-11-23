@@ -44,10 +44,10 @@ test('model offline: a new photo gets the amber notice, never a made-up result',
   test.skip(!MOCKS, 'only with USE_MOCKS=true (npm run e2e:mocks)');
   await signIn(page);
   await page.goto('/screenings/new');
-  await page.getByLabel('PATIENT REF').fill('P-0190');
+  await page.getByLabel('A fundus photo from an eye clinic').check();
   await page.getByRole('radio', { name: 'Left eye (OS)' }).check();
   await page.locator('#photo-file').setInputFiles(seedImage('dr_5_right.jpg'));
-  await page.getByRole('button', { name: /Analyze eye/ }).click();
+  await page.getByRole('button', { name: /Check my eye/ }).click();
   const notice = page.locator('.notice-amber[role=alert]');
   await expect(notice).toContainText('◐ MODEL OFFLINE');
   await expect(notice).toContainText('Model offline: no result for this image. Nothing has been made up');

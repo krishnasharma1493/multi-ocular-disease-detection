@@ -48,22 +48,38 @@ export type ModelInfo = {
   temperature: number[] | null;
 };
 export type ImageMeta = { name: string; width: number; height: number; type: string; bytes: number; sharpness: number | null };
+export type ImageSource = 'clinic_fundus' | 'phone_20d' | 'unknown';
+export type SummaryFinding = { code: string; disease: string; flagged: boolean; plain: string; borderline: boolean };
+export type PatientSummary = {
+  state: 'no_photo' | 'waiting' | 'result' | 'experimental';
+  validated_source: boolean; // only a clinic fundus photo is a source the model was evaluated on
+  is_diagnosis: false;
+  quality: { ok: boolean | null; label: string; detail: string } | null;
+  headline: string;
+  findings: SummaryFinding[];
+  uncertainty: string[];
+  next_step: { urgency: 'none' | 'routine' | 'consider' | 'soon'; text: string };
+  urgent_care: string;
+  limits: string[];
+};
 export type Screening = {
   id: number;
   owner_id: number;
   patient_ref: string;
   eye: Eye;
+  image_source: ImageSource;
   notes: string | null;
   status: ScreeningStatus;
   has_image: boolean;
   image: ImageMeta | null;
   latest_review: ReviewDecision | null;
   result: ScreeningResult | null;
+  summary: PatientSummary | null;
   analyzed_at: string | null;
   created_at: string;
   updated_at: string;
 };
-export type ScreeningInput = { patient_ref: string; eye?: Eye; notes?: string | null };
+export type ScreeningInput = { patient_ref?: string; eye?: Eye; image_source?: ImageSource; notes?: string | null };
 export type ScreeningUpdate = Partial<ScreeningInput> & { status?: ScreeningStatus };
 export type ScreeningStats = {
   total: number;
