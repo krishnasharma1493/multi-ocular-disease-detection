@@ -3,6 +3,7 @@ from collections.abc import Iterator
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.core.config import settings
+from app.modules.users.migrate import ensure_user_columns
 
 _is_sqlite = settings.database_url.startswith("sqlite")
 engine = create_engine(
@@ -16,6 +17,7 @@ def init_db() -> None:
     import app.models  # noqa: F401 — registers every table on SQLModel.metadata
 
     SQLModel.metadata.create_all(engine)
+    ensure_user_columns(engine)
 
 
 def reset_db() -> None:
