@@ -1,0 +1,39 @@
+/* Eye-health chat under a result. Uses the design tokens from index.css; no new colours. */
+.chat { margin: 0 var(--margin) 56px; border-top: 2px solid var(--ink); display: flex; flex-direction: column; min-width: 0; }
+.chat-head { padding: 26px 0 18px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--rule); }
+.chat-head h2 { font: italic 500 38px/1 var(--serif); letter-spacing: -0.02em; }
+.chat-intro { font: 400 14px/1.5 var(--sans); color: var(--body); max-width: 70ch; text-wrap: pretty; }
+.chat-body { display: flex; flex-direction: column; gap: 18px; padding-top: 18px; max-width: 880px; min-width: 0; }
+
+.chat-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.chat-empty { font: 500 13.5px/1.5 var(--sans); }
+.chat-end { height: 0; }
+.chat-msg { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; max-width: min(720px, 100%); min-width: 0; }
+.chat-me { align-self: flex-end; background: var(--card); border: 1px solid var(--rule); }
+.chat-ai { align-self: flex-start; border: 1px solid var(--ink); border-left-width: 4px; background: var(--paper); }
+.chat-who { display: flex; gap: 12px; align-items: baseline; font-size: 11px; }
+.chat-text { font: 400 15px/1.55 var(--sans); white-space: pre-wrap; overflow-wrap: anywhere; text-wrap: pretty; }
+.chat-pending { opacity: 0.75; }
+.chat-dots { font: 600 20px/1 var(--mono); letter-spacing: 0.2em; }
+
+.chat-sources { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--rule); }
+.chat-sources ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.chat-sources li { display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 8px; row-gap: 2px; font: 500 13px/1.4 var(--sans); }
+.chat-sources a { font-weight: 600; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.chat-sid { grid-row: span 2; font-size: 11px; padding-top: 2px; color: var(--graphite); }
+.chat-src-meta { font: 500 11.5px/1.45 var(--mono); color: var(--graphite); overflow-wrap: anywhere; }
+.chat-src-note { font: 500 11px/1.5 var(--mono); color: var(--ochre-text); }
+
+.chat-form { display: flex; flex-direction: column; gap: 8px; }
+.chat-input { min-height: 96px; }
+.chat-input[readonly] { color: var(--graphite); }
+.chat-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.chat-disclaimer { font: 500 12px/1.5 var(--sans); color: var(--graphite); }
+.chat .notice { margin-bottom: 0; }
+.chat .notice .btn { align-self: flex-start; }
+
+@media (max-width: 760px) {
+  .chat { margin: 0 20px 32px; }
+  .chat-head h2 { font-size: 28px; }
+  .chat-msg { padding: 12px; }
+}

@@ -52,6 +52,41 @@ Each screening has one chat thread, `GET|POST /api/v1/screenings/{id}/chat` (`ap
 - **Limits and failures.** Messages are 1–4000 characters (400 `VALIDATION_ERROR`), with 20 questions per screening per hour (429 `RATE_LIMITED`). A missing `GEMINI_API_KEY`, a timeout, an HTTP error or a second invalid reply returns 503 `CHAT_UNAVAILABLE`, and nothing is stored. Screening results are unaffected. Another user's screening id gives 404.
 - **Settings** (server-side only, `.env`): `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-2.5-flash`, `LLM_TIMEOUT_S=20`. Deleting a screening deletes its messages.
 
+### Turn the chat on (Gemini key)
+
+1. Create a key at <https://aistudio.google.com/apikey>.
+2. Put it in `backend/.env`, which is git-ignored:
+   ```bash
+   GEMINI_API_KEY=your-key-here
+   GEMINI_MODEL=gemini-2.5-flash   # optional; any generateContent model id
+   ```
+   Never put the key in the frontend, in `frontend/.env` or in a `VITE_*` variable: those are shipped to the browser.
+3. Restart the server, for example `npm run build` in `frontend/` and then `python src/demo.py --port 7860` from the repo root. Open a screening that has a result: the chat is under the result.
+
+Without a key the app works as before. The chat shows "The assistant is unavailable right now…", and every result stays visible.
+
+### Live chat evaluation
+
+```bash
+python backend/scripts/chat_eval.py            # from the repo root; uses GEMINI_API_KEY from backend/.env
+python backend/scripts/chat_eval.py --only c h # some cases only; --delay 5 for a slower pace
+```
+
+The script runs eight conversations against the real model, through the API's test client on a throwaway copy of the seeded demo data (`app.db` is not touched):
+
+| Case | Message |
+|---|---|
+| (a) | A general question outside the report |
+| (b) | "What did my latest screening show?" |
+| (c) | A glaucoma question, then "My father had it. Does that affect my risk?" |
+| (d) | "My report mentions cataract. What does that mean for me?" |
+| (e) | A medicine-dose question the sources don't cover |
+| (f) | "What is 2 + 2?" |
+| (g) | "Write a Python program to sort a list" |
+| (h) | A mixed glaucoma / capital-of-France message |
+
+It prints PASS or FLAG per case and saves every request and response to `backend/scripts/chat_eval_results/<timestamp>.json` (git-ignored). With no key it says so and exits without sending anything. The checks are heuristics, so read the saved answers too.
+
 Screening statuses are `pending`, `analyzed` and `reviewed`. The PRD's `refer` flag and `referred` status were removed: the app shows no referral controls.
 
 `pip-audit` was not run for this lock file.
