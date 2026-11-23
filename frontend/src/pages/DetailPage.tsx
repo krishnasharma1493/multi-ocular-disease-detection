@@ -7,7 +7,12 @@ import { env } from '../lib/env';
 import { COLORS, TREATMENT, dayStamp, eyeCode, eyeLong, eyeWord, fileSize, hhmm, pct, sentence, summarize, byProbability } from '../lib/format';
 import { EyeDots, Lens } from '../components/Lens';
 import { ChatPanel } from '../components/ChatPanel';
+import { ResultSummary } from '../components/ResultSummary';
 import { Loading, QueryError, useFocusHeading } from '../components/States';
+
+// Patients never need a clinician's approval, so the reviewer notes stay out of sight. The component and the
+// backend review endpoints remain, so a clinician view can return by flipping this.
+const SHOW_CLINICIAN_REVIEW = false;
 
 const READS: [ReviewDecision, string, string][] = [['agree', '✓', 'Agree'], ['disagree', '✕', 'Disagree'], ['unsure', '?', 'Unsure']];
 const BADGE = (
@@ -31,16 +36,14 @@ function useSize() {
 function EditDialog({ s, onClose }: { s: Screening; onClose: () => void }) {
   const update = useUpdateScreening();
   const ref = useRef<HTMLDialogElement>(null);
-  const [patientRef, setPatientRef] = useState(s.patient_ref);
   const [eye, setEye] = useState<Eye>(s.eye);
   const [notes, setNotes] = useState(s.notes ?? '');
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { ref.current?.showModal(); }, []);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!patientRef.trim()) { setError('Enter the patient ref'); return; }
     try {
-      await update.mutateAsync({ id: s.id, patient_ref: patientRef.trim().toUpperCase(), eye, notes: notes.trim() || null });
+      await update.mutateAsync({ id: s.id, eye, notes: notes.trim() || null });
       onClose();
     } catch (err) {
       const f = apiError(err)?.fields;
@@ -50,17 +53,15 @@ function EditDialog({ s, onClose }: { s: Screening; onClose: () => void }) {
   return (
     <dialog ref={ref} className="dialog" aria-labelledby="edit-h" onClose={onClose}>
       <form onSubmit={submit} className="tag form-tag" noValidate>
-        <div className="tag-head"><span id="edit-h">EDIT SPECIMEN TAG</span><span className="mute">{s.patient_ref}</span></div>
-        <div className="field"><label htmlFor="e-ref">PATIENT REF</label>
-          <input id="e-ref" className="ref-input" value={patientRef} maxLength={40} onChange={(e) => setPatientRef(e.target.value.toUpperCase())} aria-invalid={!patientRef.trim()} /></div>
-        <fieldset className="field"><legend>EYE SCREENED</legend>
+        <div className="tag-head"><span id="edit-h">EDIT THIS SCREENING</span></div>
+        <fieldset className="field"><legend>WHICH EYE IS IT?</legend>
           <div className="eyes">
             {(['left', 'right'] as Eye[]).map((v) => (
               <label key={v} className="eye-opt"><input type="radio" name="e-eye" value={v} checked={eye === v} onChange={() => setEye(v)} aria-label={eyeLong(v)} /><span aria-hidden="true">{v === 'left' ? 'L' : 'R'}</span></label>
             ))}
             <span className="eye-text">{eyeLong(eye)}</span>
           </div></fieldset>
-        <div className="field" style={{ gap: 6 }}><label htmlFor="e-notes">NOTES</label>
+        <div className="field" style={{ gap: 6 }}><label htmlFor="e-notes">ANYTHING YOU WANT TO REMEMBER (OPTIONAL)</label>
           <textarea id="e-notes" className="notes" rows={3} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} />
           <span className="hint" style={{ textAlign: 'right' }}>{notes.length} / 2000</span></div>
         {error && <span className="field-err" role="alert">▲ {error}</span>}
@@ -169,13 +170,13 @@ export function DetailPage() {
   const image = useScreeningImage(id, photoVersion(s), !!s?.has_image);
   const del = useDeleteScreening();
   const upload = useUploadImage();
-  const reviews = useReviews(id, !!s?.result);
+  const reviews = useReviews(id, !!s?.result && SHOW_CLINICIAN_REVIEW);
   const [editing, setEditing] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const fileIn = useRef<HTMLInputElement>(null);
   const size = useSize();
   const h = useFocusHeading<HTMLHeadingElement>(!!s);
-  useEffect(() => { if (s) document.title = `${s.patient_ref} ${eyeWord(s.eye)} eye · Detail · RetinaScreen`; }, [s]);
+  useEffect(() => { if (s) document.title = `${sentence(eyeWord(s.eye))} eye screening · RetinaScreen`; }, [s]);
 
   if (!Number.isInteger(id) || id <= 0) return <QueryError error={{ response: { status: 404 } }} path={`/screenings/${rawId}`} onRetry={() => undefined} />;
   if (screening.isPending) return <Loading label="LOADING SCREENING" />;
@@ -184,25 +185,25 @@ export function DetailPage() {
   const m = summarize(s);
   const pos = m.positives.length > 0;
   const created = parseUtc(s.created_at);
-  const disagree = reviews.data?.[0]?.decision === 'disagree';
+  const disagree = SHOW_CLINICIAN_REVIEW && reviews.data?.[0]?.decision === 'disagree';
   const verdict = !s.result ? (s.has_image ? 'Awaiting analysis.' : 'No photo yet.') : pos ? `Possible: ${m.positives.map((r) => sentence(r.disease)).join(', ')}.` : 'Not detected.';
-  const verdictSub = !s.result ? (s.has_image ? 'RUN THE ANALYSIS TO SCREEN FOUR DISEASES' : 'UPLOAD A FUNDUS PHOTO FIRST')
+  const verdictSub = !s.result ? (s.has_image ? 'RUN THE SCREENING TO CHECK FOUR EYE DISEASES' : 'ADD A PHOTO FIRST')
     : pos ? `${m.positives.length} OF 4 PAST THRESHOLD · ${m.primary!.disease.toUpperCase()} ${pct(m.primary!.probability)} vs ${pct(m.primary!.threshold)}`
     : `0 OF 4 PAST THRESHOLD · NEAREST: ${m.nearest!.disease.toUpperCase()} ${pct(m.nearest!.probability)} vs ${pct(m.nearest!.threshold)}`;
-  const statusText = !s.result ? '· NOT ANALYZED' : (pos ? '▲ POSSIBLE' : '○ NOT DETECTED') + (disagree ? ' · ✕ REVIEWER: DISAGREE' : '') + (s.status === 'reviewed' && !disagree ? ' · ✓ REVIEWED' : '');
+  const statusText = !s.result ? '· NOT CHECKED YET' : s.image_source !== 'clinic_fundus' ? '◐ EXPERIMENTAL' : (pos ? '▲ POSSIBLE' : '○ NOT DETECTED') + (disagree ? ' · ✕ REVIEWER: DISAGREE' : '') + (SHOW_CLINICIAN_REVIEW && s.status === 'reviewed' && !disagree ? ' · ✓ REVIEWED' : '');
   const statusColor = !s.result ? COLORS.MUTE : pos ? COLORS.VT : disagree ? COLORS.INK : COLORS.G;
   const img = s.image;
   const facts: [string, string][] = [
-    ['PATIENT REF', s.patient_ref],
     ['EYE', eyeLong(s.eye)],
+    ['PHOTO FROM', s.image_source === 'clinic_fundus' ? 'An eye clinic (fundus photo)' : s.image_source === 'phone_20d' ? 'A phone with a 20D lens' : 'Not recorded'],
     ['IMAGE', img ? `${img.width} × ${img.height} · ${img.type} · ${fileSize(img.bytes)}` : 'No photo uploaded'],
     ...(img?.sharpness != null ? [['QUALITY', `Sharpness ${img.sharpness.toFixed(2)} · pass`] as [string, string]] : []),
-    ['STATUS', s.status === 'pending' ? 'Pending analysis' : s.status === 'analyzed' ? 'Analyzed' : 'Reviewed'],
+    ['STATUS', s.status === 'pending' ? 'Waiting to be checked' : 'Result ready'],
     ...(s.notes ? [['NOTES', s.notes] as [string, string]] : []),
   ];
   const lensLabel = s.result
     ? 'Lens readout. ' + m.rows.map((r) => `${r.disease} ${pct(r.probability)}, threshold ${pct(r.threshold)}, ${r.positive ? 'positive' : 'not detected'}`).join('; ')
-    : s.has_image ? `Fundus photo, ${eyeWord(s.eye)} eye, ${s.patient_ref}` : 'Empty lens: no photo uploaded';
+    : s.has_image ? `Photo of your ${eyeWord(s.eye)} eye` : 'Empty lens: no photo uploaded';
 
   const replacePhoto = async (f: File | undefined) => {
     if (!f) return;
@@ -218,7 +219,7 @@ export function DetailPage() {
     }
   };
   const remove = async () => {
-    if (!window.confirm(`Delete screening ${s.patient_ref}? Its photo and reviews are deleted too.`)) return;
+    if (!window.confirm('Delete this screening? Its photo and your chat are deleted too.')) return;
     try {
       await del.mutateAsync(s.id);
       navigate('/screenings', { replace: true });
@@ -230,11 +231,11 @@ export function DetailPage() {
   return (
     <main id="main">
       <div className="crumb">
-        <Link className="back" to="/">← LEDGER</Link><span className="sep" aria-hidden="true" />
-        <h1 className="ref" ref={h} tabIndex={-1}>{s.patient_ref} <span className="sr-only">{eyeWord(s.eye)} eye</span></h1>
+        <Link className="back" to="/">← MY SCREENINGS</Link><span className="sep" aria-hidden="true" />
+        <h1 className="ref" ref={h} tabIndex={-1}>{s.eye === 'unknown' ? 'Your screening' : `${eyeWord(s.eye)} eye`}</h1>
         <span aria-hidden="true"><EyeDots eye={eyeCode(s.eye)} /></span>
         <span className="status" style={{ color: statusColor }}>{statusText}</span>
-        <span className="when">CAPTURED {hhmm(created)} · {dayStamp(created)}</span>
+        <span className="when">TAKEN {hhmm(created)} · {dayStamp(created)}</span>
         <div className="crumb-actions">
           <button type="button" className="btn btn-sm" onClick={() => setEditing(true)}>Edit</button>
           <button type="button" className="btn btn-sm" onClick={() => fileIn.current?.click()} disabled={upload.isPending}>{upload.isPending ? 'Uploading…' : s.has_image ? 'Replace photo' : 'Upload photo'}</button>
@@ -245,11 +246,11 @@ export function DetailPage() {
       {uploadErr && <div className="notice notice-red" role="alert" style={{ margin: '16px var(--margin) 0' }}><span className="label">▲ ERR</span><p>{uploadErr}</p></div>}
       <div className="detail-grid">
         <section className="facts" aria-labelledby="spec-h">
-          <h2 id="spec-h" className="eyebrow" style={{ paddingBottom: 14 }}>SPECIMEN</h2>
+          <h2 id="spec-h" className="eyebrow" style={{ paddingBottom: 14 }}>ABOUT THIS SCREENING</h2>
           <dl style={{ margin: 0 }}>{facts.map(([k, v]) => <div key={k} className="fact"><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
         </section>
         <div className="detail-center">
-          <span className="eyebrow" style={{ textAlign: 'center' }}>LENS READOUT · FOUR QUADRANTS · CLOCKWISE FROM 0°</span>
+          <span className="eyebrow" style={{ textAlign: 'center' }}>FOUR READINGS · CLOCKWISE FROM 0°</span>
           {s.has_image && image.isError && <span className="field-err" role="alert">▲ The photo could not be loaded.</span>}
           <Lens size={size} label={lensLabel} state={s.result ? 'readout' : s.has_image ? 'photo' : 'empty'} values={m.vals} thresholds={m.ths}
             eye={eyeCode(s.eye) ?? 'R'} photo={image.url} labelSize={size < 400 ? 13 : 10.5} />
@@ -259,10 +260,10 @@ export function DetailPage() {
               <span className="words">{verdict}</span>
             </div>
             <span className="sub">{verdictSub}</span>
-            {disagree && <div className="override"><span>▲ HUMAN OVERRIDE</span><i aria-hidden="true" /><span>REVIEWER: DISAGREE</span></div>}
+            {SHOW_CLINICIAN_REVIEW && disagree && <div className="override"><span>▲ HUMAN OVERRIDE</span><i aria-hidden="true" /><span>REVIEWER: DISAGREE</span></div>}
             {s.has_image && (
               <Link className="btn-primary analyze-btn" to={`/screenings/${s.id}/scan`}>
-                <span>{s.result ? 'Re-run analysis' : 'Analyze eye'}</span><span className="glyph" aria-hidden="true">→</span>
+                <span>{s.result ? 'Check again' : 'Check my eye'}</span><span className="glyph" aria-hidden="true">→</span>
               </Link>
             )}
           </div>
@@ -280,7 +281,7 @@ export function DetailPage() {
                 <div className="notch" style={{ left: `calc(${(r.threshold * 100).toFixed(2)}% - 1px)` }} />
               </div>
             </div>
-          )) : <p className="mute" style={{ padding: '16px 0', font: '500 13.5px/1.5 var(--sans)' }}>No readings yet. {s.has_image ? 'Run the analysis to screen this photo.' : 'Upload a fundus photo, then analyze it.'}</p>}
+          )) : <p className="mute" style={{ padding: '16px 0', font: '500 13.5px/1.5 var(--sans)' }}>No readings yet. {s.has_image ? 'Run the screening to check this photo.' : 'Add a photo, then run the screening.'}</p>}
           {s.result && (
             <div className="live"><i aria-hidden="true" />{s.result.demo
               ? 'DEMO RESULT · precomputed for this sample photo, not a live run'
@@ -291,7 +292,8 @@ export function DetailPage() {
           <div className="scope">Screens these four diseases only; other eye conditions are not checked.</div>
         </section>
       </div>
-      <ReviewSection s={s} />
+      <ResultSummary s={s} />
+      {SHOW_CLINICIAN_REVIEW && <ReviewSection s={s} />}
       {s.result && <ChatPanel screeningId={s.id} />}
       {editing && <EditDialog s={s} onClose={() => setEditing(false)} />}
     </main>
