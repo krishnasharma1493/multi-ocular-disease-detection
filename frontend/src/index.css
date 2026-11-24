@@ -52,7 +52,7 @@ h1, h2, p { margin: 0; }
 .mute { color: var(--graphite); }
 .c-pos { color: var(--vermilion-text); }
 .c-rev { color: var(--ochre-text); }
-.c-clr { color: var(--green); }
+.c-clr { color: var(--ink); } /* "not detected" is neutral, never green: only four diseases are checked */
 .serif { font-family: var(--serif); }
 
 /* top bezel */
@@ -139,7 +139,7 @@ h1, h2, p { margin: 0; }
 .item:hover { background: #E2DBCB; color: var(--ink); }
 .item .c-pos, .item .stamp-sm { color: var(--vermilion-ink); }
 .item .c-rev { color: var(--ochre-ink); }
-.item .c-clr { color: var(--green-ink); }
+.item .c-clr { color: var(--ink); }
 .item .hole { width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--ink); background: var(--paper); }
 .item .who { display: flex; flex-direction: column; gap: 8px; }
 .item .ref { font: 600 18px/1 var(--mono); }
@@ -543,3 +543,16 @@ label.btn.is-disabled { border-color: var(--disabled-rule); color: var(--disable
 .drop-target:hover .drop-lens { opacity: 0.92; }
 .file-btns { flex-wrap: wrap; justify-content: center; }
 .paste-note { font: 500 11px/1.5 var(--mono); letter-spacing: 0.06em; color: var(--graphite); text-align: center; max-width: 420px; }
+
+/* Model card metrics table (#15): scrolls inside its own box on narrow screens, disease column stays put */
+.metrics-scroll { overflow-x: auto; border: 1px solid var(--ink); background: var(--paper); }
+.metrics-scroll:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.metrics { width: 100%; min-width: 720px; border-collapse: separate; border-spacing: 0; font: 500 13px/1.3 var(--mono); font-variant-numeric: tabular-nums; }
+.metrics caption { text-align: left; padding: 12px 14px; font: 600 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--graphite); }
+.metrics th, .metrics td { padding: 10px 14px; text-align: right; border-top: 1px solid rgba(0,0,0,.08); white-space: nowrap; }
+.metrics thead th { font: 600 10.5px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--graphite); }
+.metrics thead tr:first-child > * { text-align: center; border-top: 0; }
+.metrics th[scope=row], .metrics thead tr:last-child th:first-child { text-align: left; font: 500 14px/1.3 var(--sans); color: var(--ink); position: sticky; left: 0; background: var(--paper); box-shadow: inset -1px 0 0 rgba(0,0,0,.08); }
+.metrics thead tr:last-child th:first-child { font: 600 10.5px/1.2 var(--mono); color: var(--graphite); }
+.metrics .odir-head { border-left: 1px solid var(--ink); }
+.metrics tbody td:nth-last-child(2) { border-left: 1px solid var(--ink); }

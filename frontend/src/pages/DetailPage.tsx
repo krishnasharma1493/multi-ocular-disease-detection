@@ -4,7 +4,7 @@ import { photoVersion, useDeleteScreening, useScreening, useScreeningImage, useU
 import { useCreateReview, useReviews } from '../features/reviews/api';
 import { apiError, apiErrorMessage, parseUtc, type Eye, type ReviewDecision, type Screening } from '../lib/api/types';
 import { env } from '../lib/env';
-import { COLORS, TREATMENT, dayStamp, eyeCode, eyeLong, eyeWord, fileSize, hhmm, pct, sentence, summarize, byProbability } from '../lib/format';
+import { COLORS, NO_TARGET, TREATMENT, dayStamp, eyeCode, eyeLong, eyeWord, fileSize, hhmm, pct, sentence, summarize, byProbability } from '../lib/format';
 import { EyeDots, Lens } from '../components/Lens';
 import { ChatPanel } from '../components/ChatPanel';
 import { ResultSummary } from '../components/ResultSummary';
@@ -186,12 +186,12 @@ export function DetailPage() {
   const pos = m.positives.length > 0;
   const created = parseUtc(s.created_at);
   const disagree = SHOW_CLINICIAN_REVIEW && reviews.data?.[0]?.decision === 'disagree';
-  const verdict = !s.result ? (s.has_image ? 'Awaiting analysis.' : 'No photo yet.') : pos ? `Possible: ${m.positives.map((r) => sentence(r.disease)).join(', ')}.` : 'Not detected.';
+  const verdict = !s.result ? (s.has_image ? 'Awaiting analysis.' : 'No photo yet.') : pos ? `Possible: ${m.positives.map((r) => sentence(r.disease)).join(', ')}.` : `${NO_TARGET}.`;
   const verdictSub = !s.result ? (s.has_image ? 'RUN THE SCREENING TO CHECK FOUR EYE DISEASES' : 'ADD A PHOTO FIRST')
     : pos ? `${m.positives.length} OF 4 PAST THRESHOLD · ${m.primary!.disease.toUpperCase()} ${pct(m.primary!.probability)} vs ${pct(m.primary!.threshold)}`
     : `0 OF 4 PAST THRESHOLD · NEAREST: ${m.nearest!.disease.toUpperCase()} ${pct(m.nearest!.probability)} vs ${pct(m.nearest!.threshold)}`;
   const statusText = !s.result ? '· NOT CHECKED YET' : s.image_source !== 'clinic_fundus' ? '◐ EXPERIMENTAL' : (pos ? '▲ POSSIBLE' : '○ NOT DETECTED') + (disagree ? ' · ✕ REVIEWER: DISAGREE' : '') + (SHOW_CLINICIAN_REVIEW && s.status === 'reviewed' && !disagree ? ' · ✓ REVIEWED' : '');
-  const statusColor = !s.result ? COLORS.MUTE : pos ? COLORS.VT : disagree ? COLORS.INK : COLORS.G;
+  const statusColor = !s.result ? COLORS.MUTE : pos ? COLORS.VT : COLORS.INK;
   const img = s.image;
   const facts: [string, string][] = [
     ['EYE', eyeLong(s.eye)],
@@ -232,7 +232,7 @@ export function DetailPage() {
     <main id="main">
       <div className="crumb">
         <Link className="back" to="/">← MY SCREENINGS</Link><span className="sep" aria-hidden="true" />
-        <h1 className="ref" ref={h} tabIndex={-1}>{s.eye === 'unknown' ? 'Your screening' : `${eyeWord(s.eye)} eye`}</h1>
+        <h1 className="ref" ref={h} tabIndex={-1}>{s.eye === 'unknown' ? 'Your screening' : `${s.eye === 'left' ? 'Left' : 'Right'} eye`}</h1>
         <span aria-hidden="true"><EyeDots eye={eyeCode(s.eye)} /></span>
         <span className="status" style={{ color: statusColor }}>{statusText}</span>
         <span className="when">TAKEN {hhmm(created)} · {dayStamp(created)}</span>
@@ -256,7 +256,7 @@ export function DetailPage() {
             eye={eyeCode(s.eye) ?? 'R'} photo={image.url} labelSize={size < 400 ? 13 : 10.5} />
           <div className="verdict" style={{ gap: 12, marginTop: 6 }}>
             <div className="verdict-line" style={{ gap: 14 }}>
-              <span className="glyph" aria-hidden="true" style={{ color: !s.result ? COLORS.MUTE : pos ? COLORS.V : COLORS.G }}>{!s.result ? '·' : pos ? '▲' : '○'}</span>
+              <span className="glyph" aria-hidden="true" style={{ color: !s.result ? COLORS.MUTE : pos ? COLORS.V : COLORS.INK }}>{!s.result ? '·' : pos ? '▲' : '○'}</span>
               <span className="words">{verdict}</span>
             </div>
             <span className="sub">{verdictSub}</span>

@@ -34,7 +34,7 @@ export function lensSVG(P: LensProps = {}): string {
   const arc = (r: number, a0: number, a1: number, ccw: boolean) => ccw ? `M${pt(r, a1)}A${r} ${r} 0 0 0 ${pt(r, a0)}` : `M${pt(r, a0)}A${r} ${r} 0 0 1 ${pt(r, a1)}`;
   const ls = +(P.labelSize ?? 10.5);
   const names = ['MYOPIA', 'CATARACT', 'GLAUCOMA', ls > 11 ? 'DIABETIC RET.' : 'DIABETIC RETINOPATHY'];
-  const { V, G, O, INK, MUTE } = COLORS;
+  const { V, O, INK, MUTE } = COLORS;
   const showQuads = state === 'readout' || state === 'analyzing';
   const well = state === 'empty' || state === 'offline';
   const showPhoto = ['readout', 'analyzing', 'uploading', 'photo'].includes(state);
@@ -119,10 +119,10 @@ export function lensSVG(P: LensProps = {}): string {
         `<line x1="${n1[0]}" y1="${n1[1]}" x2="${n2[0]}" y2="${n2[1]}" stroke="${INK}" stroke-width="${hw2}"/>`,
         `<path d="M${tip}L${b1}L${b2}Z" fill="${INK}"/>`);
       if (pos) out.push(`<line x1="${o1[0]}" y1="${o1[1]}" x2="${o2[0]}" y2="${o2[1]}" stroke="${V}" stroke-width="${hw3}"/>`);
-      if (thumb && done && !pos) out.push(`<circle cx="${cmp[0]}" cy="${cmp[1]}" r="9" fill="none" stroke="${G}" stroke-width="${hw3}"/>`);
+      if (thumb && done && !pos) out.push(`<circle cx="${cmp[0]}" cy="${cmp[1]}" r="9" fill="none" stroke="${INK}" stroke-width="${hw3}"/>`);
       if (labels) {
         let st, sc;
-        if (done) { st = pos ? ' ▲ POSSIBLE' : ' ○ CLEAR'; sc = pos ? V : G; }
+        if (done) { st = pos ? ' ▲ POSSIBLE' : ' ○ CLEAR'; sc = pos ? V : INK; }
         else if (partial) { st = ' ◐ MEASURING'; sc = O; } else { st = ' · QUEUED'; sc = MUTE; }
         const label = done || partial ? `${name} ${(val * frac * 100).toFixed(1)}%` : name;
         textEls.push(`<path id="${u}l${i}" d="${arc(bottom ? 212 : 201, a0, a1, bottom)}" fill="none"/>`,

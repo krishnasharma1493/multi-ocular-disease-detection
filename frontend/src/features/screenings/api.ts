@@ -15,6 +15,27 @@ export function useScreenings(params: ListParams) {
   });
 }
 
+/**
+ * Every screening matching a status, across all pages (the API caps `limit` at 100). The list page searches by
+ * date and eye, which the API cannot filter on, so the search runs over the full set instead of the first page.
+ */
+export function useAllScreenings(status: ScreeningStatus | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['screenings', 'all', status ?? ''],
+    queryFn: async () => {
+      const get = (page: number) =>
+        client.get<Page<Screening>>('/screenings', { params: { page, limit: 100, status } }).then((r) => r.data);
+      const first = await get(1);
+      const rest = await Promise.all(
+        Array.from({ length: Math.max(0, first.pagination.total_pages - 1) }, (_, i) => get(i + 2)),
+      );
+      return [first, ...rest].flatMap((p) => p.data);
+    },
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+}
+
 export function useScreeningStats() {
   return useQuery({
     queryKey: ['screenings', 'stats'],

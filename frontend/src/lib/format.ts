@@ -7,6 +7,8 @@ export const COLORS = {
 };
 
 export const DISEASES = ['Myopia', 'Cataract', 'Glaucoma', 'Diabetic Retinopathy'];
+/** The overall line when nothing is past its threshold. Neutral wording: the app checks only these four diseases. */
+export const NO_TARGET = 'No Myopia, Cataract, Glaucoma or Diabetic Retinopathy detected';
 const SHORT: Record<string, string> = { 'Diabetic Retinopathy': 'DR' };
 /** A disease within this many points below its threshold is flagged for review. */
 export const NEAR_NOTCH = 0.1;
@@ -88,7 +90,7 @@ export function summarize(s: Screening): Summary {
     verdict = `${sentence(near.disease)} close to notch`;
     sub = tag(near);
   } else {
-    verdict = 'Not detected';
+    verdict = NO_TARGET;
     sub = nearest.probability >= nearest.threshold / 2 ? tag(nearest) : 'ALL FOUR BELOW NOTCH';
   }
   return { rows, vals: rows.map((r) => r.probability), ths: rows.map((r) => r.threshold), positives, primary, near, nearest, status, verdict, sub, created };
@@ -97,6 +99,6 @@ export function summarize(s: Screening): Summary {
 export const STATUS_LABEL: Record<Status, { word: string; head: string; cls: string; glyph: string; color: string }> = {
   possible: { word: '▲ POSSIBLE', head: '▲ POSSIBLE', cls: 'c-pos', glyph: '▲', color: COLORS.V },
   review: { word: '◐ REVIEW', head: '◐ PENDING REVIEW', cls: 'c-rev', glyph: '◐', color: COLORS.O },
-  clear: { word: '○ CLEAR', head: '○ NOT DETECTED', cls: 'c-clr', glyph: '○', color: COLORS.G },
+  clear: { word: '○ CLEAR', head: '○ NOT DETECTED', cls: 'c-clr', glyph: '○', color: COLORS.INK },
   pending: { word: '· NOT ANALYZED', head: '· AWAITING ANALYSIS', cls: 'mute', glyph: '·', color: COLORS.MUTE },
 };

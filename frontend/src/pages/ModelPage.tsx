@@ -1,8 +1,12 @@
 import { useEffect } from 'react';
 import { useModelCard } from '../features/model/api';
 import type { DiseaseCard } from '../lib/api/types';
-import { dayStamp, num2, sentence } from '../lib/format';
+import { DISEASES, dayStamp, num2, sentence } from '../lib/format';
 import { Loading, QueryError, useFocusHeading } from '../components/States';
+
+/** Label order (Myopia, Cataract, Glaucoma, Diabetic Retinopathy); anything unexpected goes last, never dropped. */
+const orderedCards = (ds: DiseaseCard[]) =>
+  ds.slice().sort((a, b) => (DISEASES.indexOf(a.disease) + 1 || 99) - (DISEASES.indexOf(b.disease) + 1 || 99));
 
 const C = { x: 120, y: 122 }, R = 86;
 const ang = (v: number) => -135 + (Math.max(0.5, Math.min(1, v)) - 0.5) / 0.5 * 270;
@@ -53,6 +57,48 @@ function Gauge({ d }: { d: DiseaseCard }) {
   );
 }
 
+/** One cell of the metrics table: two decimals, or a dash read out as "not available". */
+function Num({ v, fmt = num2 }: { v: number | null; fmt?: (x: number) => string }) {
+  return v == null ? <td aria-label="not available">—</td> : <td>{fmt(v)}</td>;
+}
+
+/** The same held-out numbers as the gauges, as a table: exact values, label order, readable by screen readers. */
+function MetricsTable({ diseases }: { diseases: DiseaseCard[] }) {
+  const thr = (x: number) => `${(x * 100).toFixed(1)}%`;
+  return (
+    <div className="metrics-scroll" role="region" aria-labelledby="metrics-cap" tabIndex={0}>
+      <table className="metrics">
+        <caption id="metrics-cap">Held-out test metrics per disease</caption>
+        <colgroup><col /><col span={7} /><col span={2} className="odir-cols" /></colgroup>
+        <thead>
+          <tr>
+            <td />
+            <th scope="colgroup" colSpan={7}>Full test set</th>
+            <th scope="colgroup" colSpan={2} className="odir-head">Everyday ODIR photos only</th>
+          </tr>
+          <tr>
+            <th scope="col">Disease</th>
+            <th scope="col">Threshold</th><th scope="col">Precision</th><th scope="col">Recall</th><th scope="col">F1</th>
+            <th scope="col">AP</th><th scope="col">ROC-AUC</th><th scope="col">Positives</th>
+            <th scope="col" className="odir-head">AP</th><th scope="col">ROC-AUC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {diseases.map((d) => (
+            <tr key={d.code}>
+              <th scope="row">{sentence(d.disease)}</th>
+              <Num v={d.threshold} fmt={thr} />
+              <Num v={d.test_precision} /><Num v={d.test_recall} /><Num v={d.test_f1} />
+              <Num v={d.test_ap} /><Num v={d.test_roc_auc} /><Num v={d.test_positives} fmt={String} />
+              <Num v={d.odir_ap} /><Num v={d.odir_roc_auc} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function ModelPage() {
   const card = useModelCard();
   const h = useFocusHeading<HTMLHeadingElement>(!!card.data);
@@ -89,6 +135,7 @@ export function ModelPage() {
           </div>
           <div className="gauges">{m.diseases.map((d) => <Gauge key={d.code} d={d} />)}</div>
         </div>
+        <MetricsTable diseases={orderedCards(m.diseases)} />
         {weakest && weakest.odir_ap != null && weakest.odir_ap < 0.6 && (
           <div className="notice notice-amber">
             <span className="label">◐ WEAKEST NUMBER</span>

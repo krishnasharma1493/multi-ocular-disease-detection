@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { photoVersion, useAnalyzeScreening, useScreening, useScreeningImage } from '../features/screenings/api';
 import { apiError, apiErrorMessage, isOffline, type Screening, type ScreeningResult } from '../lib/api/types';
-import { COLORS, DISEASES, esc, eyeCode, eyeWord, orderedFindings, byProbability, pct, reducedMotion } from '../lib/format';
+import { COLORS, DISEASES, NO_TARGET, esc, eyeCode, eyeWord, orderedFindings, byProbability, pct, reducedMotion } from '../lib/format';
 import { lensPhotoStyle, lensSVG } from '../lib/lens';
 import { EyeDots } from '../components/Lens';
 import { Loading, QueryError, useFocusHeading } from '../components/States';
@@ -121,7 +121,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
   const explain = useMemo(() => explainOf(result, primary), [result, primary]);
   const regionRows = explain.kind === 'map' && explain.grid ? regionsOf(explain.grid).map((r, i) => ({ n: i + 1, label: i === 0 ? 'Strongest region' : 'Second region', share: `${Math.round(r.share * 100)}% of weight` })) : [];
   const imgSize = 384;
-  const verdict = posNames.length ? `Possible: ${posNames.join(', ')}.` : 'Not detected.';
+  const verdict = posNames.length ? `Possible: ${posNames.join(', ')}.` : `${NO_TARGET}.`;
   const verdictSub = primaryF ? `${posNames.length} OF 4 PAST THRESHOLD · ${primaryF.disease.toUpperCase()} ${pct(primaryF.probability)} vs ${pct(primaryF.threshold)}` : '0 OF 4 PAST THRESHOLD';
 
   useLayoutEffect(() => {
@@ -170,7 +170,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
       put('eyebrow', eyebrowRef.current, `NEW SCREENING · ${phase}`, 'textContent');
       put('title', titleRef.current, `${waiting || t < T.scanEnd ? 'Analyzing ' : ''}${screening.patient_ref}, ${eyeW} eye`, 'textContent');
       put('live', liveRef.current, waiting ? 'Analyzing. Running the model.' : t < T.up ? 'Photo placed.' : t < T.scanEnd ? `Analyzing ${curr}.`
-        : `Analysis complete. ${posNames.length ? `Possible: ${posNames.join(', ')}.` : 'Not detected.'}${explain.kind === 'fallback' ? ' Explanation map unavailable.' : ''}`, 'textContent');
+        : `Analysis complete. ${posNames.length ? `Possible: ${posNames.join(', ')}.` : `${NO_TARGET}.`}${explain.kind === 'fallback' ? ' Explanation map unavailable.' : ''}`, 'textContent');
 
       if (verdictRef.current) verdictRef.current.style.opacity = String(!waiting && t >= T.scanEnd ? ease((t - T.verdict) / 600) : 0);
       const lc = logColRef.current!;
@@ -182,7 +182,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
       const log: [string, string, string][] = [
         ['Photo placed', '✓', COLORS.INK],
         [`crop_fundus → ${imgSize} × ${imgSize}`, '✓', COLORS.INK],
-        ...DISEASES.map((n, i): [string, string, string] => (!waiting && done(i)) ? [n, `${pct(vals[i])} ${pos[i] ? '▲ POSSIBLE' : '○ CLEAR'}`, pos[i] ? COLORS.VT : COLORS.G]
+        ...DISEASES.map((n, i): [string, string, string] => (!waiting && done(i)) ? [n, `${pct(vals[i])} ${pos[i] ? '▲ POSSIBLE' : '○ CLEAR'}`, pos[i] ? COLORS.VT : COLORS.INK]
           : meas(i) ? [n, '◐ MEASURING', COLORS.OT] : [n, 'QUEUED', COLORS.MUTE]),
       ];
       put('log', logRef.current, log.map(([a, b, c]) => `<div style="color:${c}"><span>${esc(a)}</span><b>${b}</b></div>`).join(''));
@@ -253,7 +253,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
               <div className="layer" ref={ovRef} style={{ overflow: 'visible' }} />
             </div>
             <div className="verdict" ref={verdictRef} style={{ opacity: 0 }}>
-              <div className="verdict-line"><span aria-hidden="true" className="glyph" style={{ color: posNames.length ? COLORS.V : COLORS.G }}>{posNames.length ? '▲' : '○'}</span><span className="words">{verdict}</span></div>
+              <div className="verdict-line"><span aria-hidden="true" className="glyph" style={{ color: posNames.length ? COLORS.V : COLORS.INK }}>{posNames.length ? '▲' : '○'}</span><span className="words">{verdict}</span></div>
               <span className="sub">{verdictSub}</span>
             </div>
           </div>
