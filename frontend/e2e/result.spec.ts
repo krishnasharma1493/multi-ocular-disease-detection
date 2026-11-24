@@ -8,6 +8,8 @@ const sentence = (n: string) => n.split(' ').map((w, i) => (i ? w.toLowerCase() 
 
 test.beforeAll(async ({ request }) => resetDemo(request));
 
+const row = (page: import('@playwright/test').Page, disease: string) => page.locator('.readings-col .reading', { hasText: disease });
+
 for (const [id, label] of [[7, 'cataract (positive)'], [6, 'myopia just under its threshold']] as const) {
   test(`readings equal the API for screening ${id}, ${label}`, async ({ page, request }) => {
     test.setTimeout(150_000);
@@ -33,7 +35,10 @@ for (const [id, label] of [[7, 'cataract (positive)'], [6, 'myopia just under it
       const myopia = result.findings.find((f) => f.code === 'M')!;
       expect(myopia.positive).toBe(false);
       expect(myopia.probability).toBeLessThan(myopia.threshold);
-      await expect(page.locator('.verdict .words')).toHaveText('Not detected.');
+      await expect(page.locator('.verdict .words')).toHaveText('No Myopia, Cataract, Glaucoma or Diabetic Retinopathy detected.');
+      // Neutral, never green: the app checks only four diseases and must not imply "healthy"
+      await expect(page.locator('.verdict-line .glyph')).toHaveCSS('color', 'rgb(26, 26, 23)');
+      await expect(row(page, 'Myopia').locator('.res')).toHaveCSS('color', 'rgb(26, 26, 23)');
     }
     await page.setViewportSize({ width: 375, height: 800 });
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
@@ -76,4 +81,44 @@ test('seeded reviews show, and the review form works by keyboard', async ({ page
   await page.keyboard.type('Second look.');
   await page.getByRole('button', { name: 'Save read' }).click();
   await expect(page.getByRole('list', { name: 'Earlier reads, newest first' }).locator('li').first()).toContainText('Unsure');
+});
+
+test('model card table equals GET /model, calls out the weakest number, and shows every limitation', async ({ page, request }) => {
+  type Card = { code: string; disease: string; threshold: number | null; test_ap: number | null; test_roc_auc: number | null; odir_ap: number | null; odir_roc_auc: number | null };
+  const api = (await (await request.get(`${API}/model`, { headers: bearer(await token(request)) })).json()).data as
+    { live: boolean; diseases: Card[]; limitations: string[] };
+  const two = (x: number | null) => (x == null ? '—' : x.toFixed(2));
+
+  await signIn(page);
+  await page.goto('/model');
+  const table = page.getByRole('table', { name: 'Held-out test metrics per disease' });
+  await expect(table).toBeVisible();
+  // Label order, one row per disease
+  await expect(table.locator('tbody th[scope=row]')).toHaveText(['Myopia', 'Cataract', 'Glaucoma', 'Diabetic retinopathy']);
+  for (const d of api.diseases) {
+    const cells = table.locator('tbody tr', { has: page.locator('th', { hasText: sentence(d.disease) }) }).locator('td');
+    await expect(cells.nth(4)).toHaveText(two(d.test_ap));
+    await expect(cells.nth(5)).toHaveText(two(d.test_roc_auc));
+    await expect(cells.nth(7)).toHaveText(two(d.odir_ap));
+    await expect(cells.nth(8)).toHaveText(two(d.odir_roc_auc));
+  }
+  const body = await page.locator('main').innerText();
+  expect(body).not.toMatch(/\bNaN\b|\bnull\b|\bundefined\b/);
+  for (const dash of await table.locator('td', { hasText: '—' }).all()) await expect(dash).toHaveAttribute('aria-label', 'not available');
+
+  const glaucoma = api.diseases.find((d) => d.code === 'G')!;
+  if (glaucoma.odir_ap != null && glaucoma.odir_ap < 0.6) {
+    await expect(page.locator('.notice-amber')).toContainText(`Glaucoma on everyday ODIR clinic photos scores an AP of ${two(glaucoma.odir_ap)}`);
+  }
+  for (const l of api.limitations) await expect(page.locator('ol.limits')).toContainText(l);
+  await expect(page.locator('.live-badge')).toContainText(api.live ? 'LIVE' : 'OFFLINE');
+
+  // 375 px: the table scrolls inside its own box, the page does not, and the disease column stays put
+  await page.setViewportSize({ width: 375, height: 800 });
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  const box = page.locator('.metrics-scroll');
+  expect(await box.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  await box.evaluate((el) => { el.scrollLeft = 200; });
+  const first = table.locator('tbody th[scope=row]').first();
+  expect(await first.evaluate((el) => el.getBoundingClientRect().left - el.closest('.metrics-scroll')!.getBoundingClientRect().left)).toBeLessThan(4);
 });

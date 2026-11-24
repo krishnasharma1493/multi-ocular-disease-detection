@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useScreenings } from '../features/screenings/api';
+import { useAllScreenings, useScreenings } from '../features/screenings/api';
 import { parseUtc, type Screening, type ScreeningStatus } from '../lib/api/types';
 import { STATUS_LABEL, dayStamp, eyeCode, eyeWord, hhmm, summarize } from '../lib/format';
 import { EyeDots, Lens } from '../components/Lens';
@@ -32,31 +32,24 @@ export function ScreeningsPage() {
   }, [text]);
 
   const isSearch = !!q.trim();
-  const list = useScreenings({
-    page: isSearch ? 1 : page,
-    limit: isSearch ? 100 : LIMIT,
-    status: status || undefined,
-  });
+  const paged = useScreenings({ page, limit: LIMIT, status: status || undefined });
+  const everything = useAllScreenings(status || undefined, isSearch);
+  const list = isSearch ? everything : paged;
 
   const queryLower = q.trim().toLowerCase();
-  const rawData = list.data;
-
-  // Filter client-side when search query is present to allow searching by date or eye
-  const allFiltered: Screening[] = (rawData?.data ?? []).filter((s) => {
-    if (!queryLower) return true;
+  // Searched client-side (date, eye or reference), over every screening rather than one page of them
+  const allFiltered: Screening[] = (everything.data ?? []).filter((s) => {
     const created = parseUtc(s.created_at);
-    const dateStr = dayStamp(created).toLowerCase();
-    const eyeStr = s.eye.toLowerCase();
-    const eyeWordStr = eyeWord(s.eye).toLowerCase();
-    const refStr = s.patient_ref.toLowerCase();
-    return dateStr.includes(queryLower) || eyeStr.includes(queryLower) || eyeWordStr.includes(queryLower) || refStr.includes(queryLower);
+    return [dayStamp(created), s.eye, eyeWord(s.eye), s.patient_ref].some((v) => v.toLowerCase().includes(queryLower));
   });
+  const rawData = isSearch ? everything.data : paged.data;
 
-  const total = isSearch ? allFiltered.length : (rawData?.pagination.total ?? 0);
-  const lastPage = isSearch ? Math.max(1, Math.ceil(total / LIMIT)) : (rawData?.pagination.total_pages ?? 1);
-  const displayedItems = isSearch ? allFiltered.slice((page - 1) * LIMIT, page * LIMIT) : (rawData?.data ?? []);
+  const total = isSearch ? allFiltered.length : (paged.data?.pagination.total ?? 0);
+  const lastPage = isSearch ? Math.max(1, Math.ceil(total / LIMIT)) : Math.max(1, paged.data?.pagination.total_pages ?? 1);
+  const displayedItems = isSearch ? allFiltered.slice((page - 1) * LIMIT, page * LIMIT) : (paged.data?.data ?? []);
   const from = total ? (page - 1) * LIMIT + 1 : 0;
   const to = Math.min(total, page * LIMIT);
+  const pastEnd = !!rawData && total > 0 && page > lastPage;
   const filtered = !!q || !!status;
 
   useEffect(() => { document.title = 'All results · RetinaScreen'; }, [rawData]);
@@ -86,7 +79,7 @@ export function ScreeningsPage() {
         </div>
 
         <div className="list-meta eyebrow" aria-live="polite">
-          {list.isFetching && !rawData ? 'LOADING' : total ? `SHOWING ${from}–${to} OF ${total}` : ''}
+          {list.isFetching && !rawData ? 'LOADING' : total && !pastEnd ? `SHOWING ${from}–${to} OF ${total}` : ''}
           {list.error && rawData ? ' · ▲ REFRESH FAILED' : ''}
         </div>
 
@@ -95,9 +88,10 @@ export function ScreeningsPage() {
         ) : displayedItems.length === 0 ? (
           <div className="empty-list">
             <span className="w2 serif">{filtered || page > 1 ? 'No screenings match these filters' : 'No screenings yet'}</span>
-            {filtered || page > 1
+            {pastEnd && <button type="button" className="btn" onClick={() => update({ page: '1' })}>Go to page 1</button>}
+            {filtered
               ? <button type="button" className="btn" onClick={() => { setText(''); setParams({}); }}>Clear filters</button>
-              : <Link className="btn" to="/screenings/new">New screening</Link>}
+              : !pastEnd && <Link className="btn" to="/screenings/new">New screening</Link>}
           </div>
         ) : (
           <table className="table">
@@ -123,7 +117,7 @@ export function ScreeningsPage() {
           </table>
         )}
 
-        {rawData && lastPage > 1 && (
+        {rawData && lastPage > 1 && !pastEnd && (
           <nav className="pager" aria-label="Pages">
             <button type="button" className="btn" disabled={page <= 1} onClick={() => update({ page: String(page - 1) })}>← Previous</button>
             <span className="eyebrow">PAGE {page} OF {lastPage}</span>

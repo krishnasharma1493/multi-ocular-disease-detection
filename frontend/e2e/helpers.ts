@@ -26,8 +26,8 @@ export async function signIn(page: Page, email = 'demo@example.com') {
   await page.goto('/login');
   await page.getByLabel('EMAIL').fill(email);
   await page.getByLabel('PASSWORD').fill(PASSWORD);
-  await page.getByRole('button', { name: /Begin screening/ }).click();
-  await expect(page.getByRole('heading', { level: 1, name: /Today’s camp/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: /Your eye screenings/ })).toBeVisible();
 }
 
 /** Horizontal page scroll (the page wider than the viewport). */

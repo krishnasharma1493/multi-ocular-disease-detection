@@ -51,14 +51,15 @@ test('edit, replace photo (with warning) and delete', async ({ page, request }) 
   await signIn(page);
   await page.goto('/screenings/7');
   await page.getByRole('button', { name: 'Edit' }).click();
-  const dialog = page.getByRole('dialog', { name: 'EDIT SPECIMEN TAG' });
-  await dialog.getByLabel('PATIENT REF').fill('P-0176');
-  await dialog.getByLabel('NOTES').fill('Edited in the end-to-end test.');
+  const dialog = page.getByRole('dialog', { name: 'EDIT THIS SCREENING' });
+  await dialog.getByRole('radio', { name: 'Left (OS)' }).check();
+  await dialog.getByLabel('ANYTHING YOU WANT TO REMEMBER (OPTIONAL)').fill('Edited in the end-to-end test.');
   await dialog.getByRole('button', { name: 'Save changes' }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('P-0176');
-  await page.goto('/screenings?q=P-0176');
-  await expect(page.locator('table tbody .row-link')).toHaveText(['P-0176']);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Left eye');
+  await expect(page.locator('.fact', { hasText: 'NOTES' })).toContainText('Edited in the end-to-end test.');
+  await page.goto('/screenings?q=left');
+  await expect(page.locator('table tbody .row-link')).toHaveText(['Screening #7']);
 
   // Replacing the photo of an analyzed screening asks first; Cancel keeps the result
   await page.goto('/screenings/7');
@@ -74,10 +75,11 @@ test('edit, replace photo (with warning) and delete', async ({ page, request }) 
 
   // Delete asks with the patient ref, then the list and stats no longer count it
   const before = (await (await request.get(`${API}/screenings/stats`, { headers })).json()).data.total;
-  page.once('dialog', (d) => { expect(d.message()).toContain('P-0176'); void d.accept(); });
+  page.once('dialog', (d) => { expect(d.message()).toContain('Delete this screening'); void d.accept(); });
   await page.getByRole('button', { name: 'Delete' }).click();
   await page.waitForURL(/\/screenings$/);
-  await expect(page.locator('table tbody .row-link', { hasText: 'P-0176' })).toHaveCount(0);
+  await expect(page.locator('table tbody tr').first()).toBeVisible();
+  await expect(page.locator('table tbody .row-link', { hasText: 'Screening #7' })).toHaveCount(0);
   const after = (await (await request.get(`${API}/screenings/stats`, { headers })).json()).data.total;
   expect(after).toBe(before - 1);
 });
