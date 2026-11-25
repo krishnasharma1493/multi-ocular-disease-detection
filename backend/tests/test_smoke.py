@@ -81,7 +81,7 @@ def test_create_upload_analyze_review(client, auth):
 def test_model_card_and_admin_reset(client, auth, judge):
     card = client.get(f"{API}/model", headers=auth).json()["data"]
     assert [d["code"] for d in card["diseases"]] == ["M", "C", "G", "D"]
-    assert card["live"] is False and len(card["limitations"]) == 5
+    assert card["live"] is False and len(card["limitations"]) == 6
     metrics = Path(BACKEND_DIR.parent / "outputs" / "metrics.json")
     if metrics.exists():
         import json

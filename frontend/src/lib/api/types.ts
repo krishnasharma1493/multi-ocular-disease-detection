@@ -36,6 +36,7 @@ export type ScreeningResult = {
   demo: boolean; // precomputed demo result (DEMO_FIXTURES), never a live run
   latency_ms: number;
   disclaimer: string;
+  photo_px?: number | null; // retina size in the photo; small photos get adjusted cut-offs
   model: ModelInfo | null; // which checkpoint and thresholds produced it (null on older results)
 };
 export type ModelInfo = {
@@ -157,5 +158,5 @@ export function apiError(err: unknown): ApiErrorBody['error'] | undefined {
 /** Human-readable message from any API error. Never render raw error objects. */
 export function apiErrorMessage(err: unknown): string {
   if (isOffline(err)) return "Can't reach the server";
-  return apiError(err)?.message ?? 'Something went wrong — please try again';
+  return apiError(err)?.message ?? 'Something went wrong. Please try again.';
 }

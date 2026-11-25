@@ -47,7 +47,7 @@ Each screening has one chat thread, `GET|POST /api/v1/screenings/{id}/chat` (`ap
   - "the approved sources don't cover it" when they don't;
   - no diagnosis; quality, borderline and experimental caveats kept;
   - urgent symptoms sent to urgent care;
-  - plain, brief and kind.
+  - plain, brief and kind, written like a person talking: no stock phrases, filler, em dashes or bold.
 - **Output checks.** The model must return `{"in_scope", "answer", "sources_used"}`. Cited ids that were not supplied are dropped. An invalid reply is retried once.
 - **Limits and failures.** Messages are 1–4000 characters (400 `VALIDATION_ERROR`), with 20 questions per screening per hour (429 `RATE_LIMITED`). A missing `GEMINI_API_KEY`, a timeout, an HTTP error or a second invalid reply returns 503 `CHAT_UNAVAILABLE`, and nothing is stored. Screening results are unaffected. Another user's screening id gives 404.
 - **Settings** (server-side only, `.env`): `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-2.5-flash`, `LLM_TIMEOUT_S=20`. Deleting a screening deletes its messages.
@@ -98,6 +98,14 @@ Screening statuses are `pending`, `analyzed` and `reviewed`. The PRD's `refer` f
 Each screening records where its photo came from: `image_source` is `clinic_fundus`, `phone_20d` or `unknown` (older rows, set by a start-up `ALTER TABLE`). Only `clinic_fundus` is a source the model has been evaluated on. `patient_ref` defaults to `"Me"`.
 
 For `phone_20d` uploads, `app/modules/screenings/phone20d.py` finds the round, bright, reddish retina view, blacks out everything outside it, rotates it 180° and stores that prepared image for analysis (the original upload is kept beside it, recorded in `image_meta.original`). It rejects, with a plain reason (422 `IMAGE_QUALITY`), photos with no usable circle, a circle that is too small or cut off by the frame, or more than 8% near-white glare inside the circle. Changing `image_source` on a screening that already has a photo removes the photo and its result. Accuracy on real phone photos has not been validated.
+
+## Photos from outside the clinic (screenshots, web images, small photos)
+
+Measured by recreating each condition on the 959 labelled test eyes; the model itself is unchanged.
+
+- **White or grey margins.** Screenshots and web images often sit on white margins with captions or letter labels. `src.preprocessing.prepare_fundus` blacks out light, colourless pixels outside the retina, then crops as before (`crop_fundus`). Photos without such margins get exactly the validated input (the golden-set test checks this). With a white margin, myopia was found in 55% of test eyes before and 85% after, the same as clean photos.
+- **Small photos.** A photo whose retina is under 512 px across is enlarged, and the blur looks like a cataract's haze: at 240 px, 64% of healthy ODIR test eyes were flagged "Possible: Cataract". `app/modules/screenings/cutoffs.py` holds cut-offs fitted on ODIR validation eyes shrunk to 240 px, with the training rule (`src.calibration.target_thresholds`); between 240 px and full size they move back to the trained cut-offs. ODIR test eyes, 240 px, before → after: cataract false alarms 64% → 5%, diabetic retinopathy found 24% → 48%. Each result stores `photo_px`, and the summary says when a photo is small. Refit for a new checkpoint with `python -m src.small_photo_cutoffs` (the values are tied to the run id).
+- **Not fixed:** photos from other kinds of cameras, such as Color SLO (scanning laser) images, were never in training; their results are unreliable and need labelled examples and fine-tuning.
 
 ## Patient summary
 

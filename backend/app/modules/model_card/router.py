@@ -20,8 +20,9 @@ LIMITATIONS = [
     "It screens only these four diseases.",
     "It may flag photos that show other conditions.",
     "The myopia class learned pathological myopia, so mild myopia can look normal.",
-    "Glaucoma on everyday camp photos (ODIR) is its weakest area.",
-    "It is not clinically validated; accuracy on other cameras and populations is unknown.",
+    "Glaucoma on everyday photos (ODIR) is its weakest area.",
+    "It has not been tested in a clinic, and its accuracy on other cameras and groups of people is unknown.",
+    "Small photos (phone shots, thumbnails) and other kinds of cameras, such as Color SLO, give less reliable results.",
 ]
 
 

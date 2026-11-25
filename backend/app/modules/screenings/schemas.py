@@ -7,6 +7,8 @@ from sqlmodel import Field, SQLModel
 from app.modules.screenings.models import Eye, ImageSource, ScreeningBase, ScreeningStatus
 
 
+DISCLAIMER = "Only an eye doctor can confirm what is going on with your eyes."
+
 class ScreeningCreate(SQLModel):
     patient_ref: str = Field(default="Me", min_length=1, max_length=40)
     eye: Eye = Eye.unknown
@@ -61,11 +63,13 @@ class ScreeningResult(SQLModel):
     demo: bool = False   # True for a precomputed demo result (source "fixture"), never for a live run
     latency_ms: int
     disclaimer: str
+    photo_px: int | None = None  # the retina's size in the photo, in pixels; small photos get adjusted cut-offs
     model: ModelInfo | None = None  # None only on results stored before model tracking existed
 
     @model_validator(mode="after")
     def _fixture_is_demo(self) -> "ScreeningResult":
         self.demo = self.source == "fixture"  # also labels results stored before this field existed
+        self.disclaimer = DISCLAIMER  # results stored with older wording show the current sentence
         return self
 
 

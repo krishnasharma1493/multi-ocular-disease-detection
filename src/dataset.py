@@ -5,7 +5,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 from .labels import LABELS, UNKNOWN
-from .preprocessing import crop_fundus
+from .preprocessing import crop_fundus, prepare_fundus
 
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -73,5 +73,9 @@ def val_transforms(img_size=384):
 
 
 def to_tensor(image, img_size=384):
-    """Preprocess a single image (PIL or RGB array) exactly like validation data."""
-    return val_transforms(img_size)(image=crop_fundus(image))['image'].unsqueeze(0)
+    """Preprocess an uploaded image (PIL or RGB array) like validation data.
+
+    prepare_fundus also removes white or grey screenshot margins; on clean fundus photos it gives the
+    same input as crop_fundus, which the training and validation photos went through.
+    """
+    return val_transforms(img_size)(image=prepare_fundus(image))['image'].unsqueeze(0)

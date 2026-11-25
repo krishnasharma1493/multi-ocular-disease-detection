@@ -119,7 +119,7 @@ def test_unknown_source_is_experimental():
 
 def test_demo_fixture_is_labelled():
     s = patient_summary(make(res=result(*[finding(c, d, 0.05, t) for c, d, t in FOUR], demo=True)))
-    assert any("stored demo result" in u for u in s.uncertainty)
+    assert any("stored result" in u for u in s.uncertainty)
     check_wording(s)
 
 
@@ -141,7 +141,7 @@ def test_api_returns_the_summary(client, auth):
     data = client.get(f"{API}/screenings/4", headers=auth).json()["data"]  # seeded DR screening, fixture result
     assert data["summary"]["is_diagnosis"] is False and data["summary"]["state"] == "result"
     assert data["summary"]["headline"].startswith("The screening flagged possible signs of diabetic retinopathy")
-    assert any("stored demo result" in u for u in data["summary"]["uncertainty"])
+    assert any("stored result" in u for u in data["summary"]["uncertainty"])
     waiting = client.get(f"{API}/screenings/7", headers=auth).json()["data"]  # photo, no result yet
     assert waiting["summary"]["state"] == "waiting" and waiting["summary"]["is_diagnosis"] is False
     listed = client.get(f"{API}/screenings", headers=auth).json()["data"]
