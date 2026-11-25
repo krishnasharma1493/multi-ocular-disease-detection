@@ -8,6 +8,8 @@ import { COLORS, TREATMENT, dayStamp, eyeCode, eyeLong, eyeWord, fileSize, hhmm,
 import { EyeDots, Lens } from '../components/Lens';
 import { ChatPanel } from '../components/ChatPanel';
 import { ResultSummary } from '../components/ResultSummary';
+import { CountUp } from '../components/Motion';
+import { useArrive } from '../lib/motion';
 import { Loading, QueryError, useFocusHeading } from '../components/States';
 
 // Patients never need a clinician's approval, so the reviewer notes stay out of sight. The component and the
@@ -107,7 +109,7 @@ function ReviewSection({ s }: { s: Screening }) {
 
   return (
     <section className="notes-sec" aria-labelledby="notes-h">
-      <div className="notes-row head"><div className="margin" aria-hidden="true" /><div className="body"><h2 id="notes-h">Reviewer’s notes</h2><span className="badge">{BADGE}Verified by RetinaScreen AI</span></div></div>
+      <div className="notes-row head"><div className="margin" aria-hidden="true" /><div className="body"><h2 id="notes-h">Reviewer’s notes</h2><span className="badge">{BADGE}Checked by a reviewer</span></div></div>
       <div className="notes-row"><div className="margin" aria-hidden="true">① READ</div><div className="body">
         {!s.result ? (
           <p className="mute" style={{ font: '500 13px/1.5 var(--sans)' }}>Analyze the screening before reviewing it.</p>
@@ -162,6 +164,7 @@ function ReviewSection({ s }: { s: Screening }) {
 }
 
 export function DetailPage() {
+  const arrive = useArrive<HTMLElement>();
   const rawId = useParams().id;
   const id = Number(rawId);
   const navigate = useNavigate();
@@ -222,7 +225,7 @@ export function DetailPage() {
     if (!window.confirm('Delete this screening? Its photo and your chat are deleted too.')) return;
     try {
       await del.mutateAsync(s.id);
-      navigate('/screenings', { replace: true });
+      navigate('/screenings', { replace: true, viewTransition: true });
     } catch (err) {
       setUploadErr(`Not deleted · ${apiErrorMessage(err)}`);
     }
@@ -231,7 +234,7 @@ export function DetailPage() {
   return (
     <main id="main">
       <div className="crumb">
-        <Link className="back" to="/">← MY SCREENINGS</Link><span className="sep" aria-hidden="true" />
+        <Link viewTransition className="back" to="/">← MY SCREENINGS</Link><span className="sep" aria-hidden="true" />
         <h1 className="ref" ref={h} tabIndex={-1}>{s.eye === 'unknown' ? 'Your screening' : `${eyeWord(s.eye)} eye`}</h1>
         <span aria-hidden="true"><EyeDots eye={eyeCode(s.eye)} /></span>
         <span className="status" style={{ color: statusColor }}>{statusText}</span>
@@ -262,18 +265,18 @@ export function DetailPage() {
             <span className="sub">{verdictSub}</span>
             {SHOW_CLINICIAN_REVIEW && disagree && <div className="override"><span>▲ HUMAN OVERRIDE</span><i aria-hidden="true" /><span>REVIEWER: DISAGREE</span></div>}
             {s.has_image && (
-              <Link className="btn-primary analyze-btn" to={`/screenings/${s.id}/scan`}>
+              <Link viewTransition className="btn-primary analyze-btn" to={`/screenings/${s.id}/scan`}>
                 <span>{s.result ? 'Check again' : 'Check my eye'}</span><span className="glyph" aria-hidden="true">→</span>
               </Link>
             )}
           </div>
         </div>
-        <section className="readings-col" aria-label="Readings">
+        <section className="readings-col" aria-label="Readings" ref={arrive}>
           <div className="readings-head"><span>READINGS</span><span>PROB · THRESHOLD</span></div>
-          {s.result ? byProbability(s.result.findings).map((r) => (
+          {s.result ? byProbability(s.result.findings).map((r, i) => (
             <div key={r.code} className="reading" style={{ padding: '16px 0 18px' }}>
               <div className="reading-top"><span className="name">{sentence(r.disease)}</span><span className={`res ${r.positive ? 'c-pos' : 'c-clr'}`}>{r.positive ? '▲ POSITIVE' : '○ NOT DETECTED'}</span></div>
-              <div className="reading-nums"><span className="prob">{pct(r.probability)}</span><span className="mute">threshold {pct(r.threshold)}</span></div>
+              <div className="reading-nums"><span className="prob"><CountUp value={r.probability} format={pct} delay={i * 90} /></span><span className="mute">threshold {pct(r.threshold)}</span></div>
               <meter className="sr-only" min={0} max={1} value={r.probability} aria-label={`${r.disease} probability ${pct(r.probability)}, threshold ${pct(r.threshold)}`} />
               <div className="bar" aria-hidden="true">
                 <div className="scale" /><div className="base" />
@@ -284,7 +287,7 @@ export function DetailPage() {
           )) : <p className="mute" style={{ padding: '16px 0', font: '500 13.5px/1.5 var(--sans)' }}>No readings yet. {s.has_image ? 'Run the screening to check this photo.' : 'Add a photo, then run the screening.'}</p>}
           {s.result && (
             <div className="live"><i aria-hidden="true" />{s.result.demo
-              ? 'DEMO RESULT · precomputed for this sample photo, not a live run'
+              ? 'STORED RESULT · from an earlier run on this sample photo'
               : `EfficientNet-B0 · live · ${s.result.latency_ms} ms`}
               {' · '}{s.result.model?.run_id ? `run ${s.result.model.run_id}` : 'run not recorded'}
               {s.result.model?.checkpoint_sha256 ? ` · checkpoint ${s.result.model.checkpoint_sha256.slice(0, 8)}` : ''}</div>

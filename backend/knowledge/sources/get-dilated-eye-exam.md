@@ -4,7 +4,7 @@ source: National Eye Institute (NEI)
 url: https://www.nei.nih.gov/eye-health-information/healthy-vision/finding-eye-doctor/get-dilated-eye-exam
 version: 2025-11-26
 retrieved: 2026-11-23
-review_status: not reviewed by the project's ophthalmologist
+review_status: not reviewed by an eye doctor
 ---
 
 # Get a Dilated Eye Exam

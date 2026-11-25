@@ -8,6 +8,7 @@ never presented as reliable.
 from typing import Any
 
 from app.modules.model_card.router import LIMITATIONS
+from app.modules.screenings.cutoffs import SMALL_PHOTO_PX
 from app.modules.screenings.models import ImageSource, Screening
 from app.modules.screenings.schemas import (PatientSummary, SummaryFinding, SummaryNextStep, SummaryQuality)
 from app.modules.screenings.service import MIN_SHARPNESS, MIN_SHARPNESS_DISC
@@ -48,7 +49,10 @@ def _quality(meta: dict[str, Any] | None) -> SummaryQuality:
 def _plain_finding(f: dict[str, Any], validated: bool) -> SummaryFinding:
     name = str(f["disease"]).lower()
     flagged = bool(f["positive"])
-    borderline = abs(float(f["probability"]) - float(f["threshold"])) <= NEAR
+    threshold = float(f["threshold"])
+    # Within NEAR of the cut-off; for a low cut-off (small photos) at most half of it, so a near-zero
+    # score is not called close to a cut-off of 0.09
+    borderline = abs(float(f["probability"]) - threshold) <= min(NEAR, threshold / 2)
     if validated:
         plain = (f"Possible signs of {name} were found." if flagged
                  else f"No signs of {name} were found by the screening.")
@@ -88,8 +92,12 @@ def patient_summary(screening: Screening) -> PatientSummary:
     close = [f for f in findings if f.borderline]
     uncertainty = [f"The {f.disease.lower()} score was close to the cut-off, so this result is less certain."
                    for f in close]
+    photo_px = result.get("photo_px")
+    if photo_px and photo_px < SMALL_PHOTO_PX:
+        uncertainty.append(f"The retina in this photo is small ({photo_px} pixels across), so the result is "
+                           "less certain. A larger, sharper photo gives a more reliable result.")
     if result.get("demo"):
-        uncertainty.append("This is a stored demo result for a sample photo, not a live run of the model.")
+        uncertainty.append("This is a stored result from an earlier run on this sample photo, not a new run of the model.")
 
     if validated:
         headline = (f"The screening flagged possible signs of {_names(flagged)}." if flagged else

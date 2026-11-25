@@ -1,0 +1,136 @@
+/* RetinaScreen motion — "Field Instrument".
+   Motion behaves like a precise instrument: quick to respond, decisive deceleration, nothing bounces.
+   Content is always visible in its default state; every animation only plays *towards* that state.
+
+   Tokens
+   --ease-out   arrivals (settling needles, entering views)
+   --ease-in    departures (always shorter than arrivals)
+   --t-press    key-press feedback   --t-state  routine state change   --t-view  page change */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --t-press: 110ms;
+  --t-state: 200ms;
+  --t-view: 380ms;
+}
+
+/* ---------- browser surfaces ---------- */
+::selection { background: var(--ink); color: var(--paper); }
+.chat ::selection { background: var(--paper); color: var(--ink); }
+input, textarea { caret-color: var(--vermilion); }
+html { scrollbar-color: var(--disabled-rule) transparent; }
+
+/* ---------- page changes (View Transitions; browsers without them just swap) ----------
+   The bezel holds still, the active-tab rule slides to its new tab, and the page reads out:
+   the old page lifts away fast, the new one settles up into place. */
+.bezel { view-transition-name: bezel; }
+.foot { view-transition-name: foot; }
+main#main { view-transition-name: page; }
+.nav-ind { view-transition-name: nav-ind; }
+::view-transition-group(*) { animation-duration: var(--t-view); animation-timing-function: var(--ease-out); }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-old(page) { animation: rs-page-out 140ms var(--ease-in) both; }
+::view-transition-new(page) { animation: rs-page-in var(--t-view) var(--ease-out) 50ms both; }
+@keyframes rs-page-out { to { opacity: 0; transform: translateY(-8px); } }
+@keyframes rs-page-in { from { opacity: 0; transform: translateY(16px); } }
+@supports (view-transition-name: a) {
+  .view > main { animation: none; } /* the view transition already brings the page in */
+}
+
+/* active tab rule (a real element so it can travel between tabs) */
+.nav a[aria-current="page"]::after, .bezel .nav a.active::after { content: none; }
+.nav-ind { position: absolute; left: 18px; right: 18px; bottom: -1px; height: 3px; background: var(--ink); pointer-events: none; }
+
+/* ---------- key-press feedback ---------- */
+.btn, .btn-primary, .new-btn, .chat-chip, .chat-send, .chat-back, .toggles button {
+  transition: background-color var(--t-state) ease, color var(--t-state) ease, border-color var(--t-state) ease,
+    transform var(--t-press) var(--ease-out);
+}
+.btn:active:not(:disabled), .btn-primary:active:not(:disabled), .new-btn:active,
+.chat-chip:active:not(:disabled), .chat-back:active, .toggles button:active { transform: translateY(1px) scale(0.985); }
+.chat-send:active:not(:disabled) { transform: scale(0.92); }
+.btn-primary .glyph, .link { transition: transform 240ms var(--ease-out); }
+.btn-primary:hover:not(:disabled) .glyph { transform: translateX(4px); }
+
+/* eye choice: the selected dial closes in like an aperture */
+.eye-opt input:checked + span { animation: rs-aperture 340ms var(--ease-out); }
+@keyframes rs-aperture {
+  from { box-shadow: inset 0 0 0 30px var(--paper); }
+  to { box-shadow: inset 0 0 0 0 var(--paper); }
+}
+/* photo source: the radio dot lands */
+.source-opt input:checked { animation: rs-dot 260ms var(--ease-out); }
+@keyframes rs-dot { from { transform: scale(0.6); } }
+
+/* ---------- lists read out in order (capped at ten rows) ---------- */
+.rows > .item, .table tbody tr {
+  animation: rs-feed 460ms var(--ease-out) both;
+}
+@keyframes rs-feed {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+.rows > :nth-child(2), .table tbody tr:nth-child(2) { animation-delay: 45ms; }
+.rows > :nth-child(3), .table tbody tr:nth-child(3) { animation-delay: 90ms; }
+.rows > :nth-child(4), .table tbody tr:nth-child(4) { animation-delay: 135ms; }
+.rows > :nth-child(5), .table tbody tr:nth-child(5) { animation-delay: 180ms; }
+.rows > :nth-child(6), .table tbody tr:nth-child(6) { animation-delay: 225ms; }
+.rows > :nth-child(7), .table tbody tr:nth-child(7) { animation-delay: 270ms; }
+.rows > :nth-child(8), .table tbody tr:nth-child(8) { animation-delay: 315ms; }
+.rows > :nth-child(9), .table tbody tr:nth-child(9) { animation-delay: 360ms; }
+.rows > :nth-child(n + 10), .table tbody tr:nth-child(n + 10) { animation-delay: 400ms; }
+.item .hole { transition: background-color var(--t-state) ease, transform var(--t-state) var(--ease-out); }
+.item:hover .hole { background: var(--ink); transform: scale(1.15); }
+
+/* ---------- result page: the readings settle like gauges when they come into view ---------- */
+.readings-col .reading:nth-child(2) { --d: 0ms; }
+.readings-col .reading:nth-child(3) { --d: 90ms; }
+.readings-col .reading:nth-child(4) { --d: 180ms; }
+.readings-col .reading:nth-child(5) { --d: 270ms; }
+.readings-col .fill { transform-origin: left center; }
+.readings-col.armed .fill { transform: scaleX(0); }
+.readings-col.armed .notch { opacity: 0; transform: translateY(-7px); }
+.readings-col.armed .res { opacity: 0; }
+.readings-col.armed.in .fill { transform: none; transition: transform 1000ms var(--ease-out) var(--d, 0ms); }
+.readings-col.armed.in .notch { opacity: 1; transform: none; transition: opacity 300ms ease-out, transform 520ms var(--ease-out); transition-delay: var(--d, 0ms); }
+.readings-col.armed.in .res { opacity: 1; transition: opacity 360ms ease-out calc(var(--d, 0ms) + 650ms); }
+@keyframes rs-fade-in { from { opacity: 0; } }
+
+/* ---------- capture: an error draws its leader line out to the message ---------- */
+.callout.err::before { transform-origin: right center; animation: rs-draw 420ms var(--ease-out) both; }
+.callout.err::after { animation: rs-pop 300ms var(--ease-out) 320ms both; }
+.callout.err > * { animation: rs-fade-in 320ms ease-out 200ms both; }
+@keyframes rs-draw { from { transform: scaleX(0); } }
+@keyframes rs-pop { from { transform: scale(0); } }
+
+/* ---------- model page: gauge needles sweep up to their reading when scrolled into view ----------
+   Armed by script; without it the needles simply sit at their value. */
+.gauge .needle { transform-box: view-box; transform-origin: 120px 122px; }
+.gauge.armed .needle { transform: rotate(calc(-1 * var(--sweep, 0deg))); }
+.gauge.armed .ap { opacity: 0; }
+.gauge.armed.in .needle { transform: rotate(0deg); transition: transform 1200ms var(--ease-out) var(--delay, 0ms); }
+.gauge.armed.in .ap { opacity: 1; transition: opacity 400ms ease-out calc(var(--delay, 0ms) + 700ms); }
+
+/* ---------- overlays and loading ---------- */
+.dialog[open] { animation: rs-dialog 300ms var(--ease-out); }
+.dialog[open]::backdrop { animation: rs-fade-in 300ms ease-out; }
+@keyframes rs-dialog { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+.skeleton {
+  background: linear-gradient(100deg, var(--card) 0 35%, var(--rule-soft) 50%, var(--card) 65% 100%) 0 0 / 300% 100%;
+  animation: rs-shimmer 1.5s linear infinite;
+}
+@keyframes rs-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.chat-msg { animation: rs-msg 380ms var(--ease-out) both; }
+@keyframes rs-msg { from { opacity: 0; transform: translateY(10px); } }
+
+@media (max-width: 760px) {
+  .nav-ind { left: 0; right: auto; top: 0; bottom: 0; width: 3px; height: auto; }
+  .nav.open { animation: rs-menu 280ms var(--ease-out); }
+  @keyframes rs-menu { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+}
+
+/* ---------- reduced motion: no travel, keep the meaningful fades ---------- */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  .gauge.armed .needle { transform: none; }
+}

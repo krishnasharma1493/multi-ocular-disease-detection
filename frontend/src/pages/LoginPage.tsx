@@ -44,7 +44,7 @@ export function LoginPage() {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       await login(values.email.trim(), values.password);
-      navigate(next, { replace: true });
+      navigate(next, { replace: true, viewTransition: true });
     } catch (err) {
       const message = apiStatus(err) === 401
         ? 'Email or password not recognised'
@@ -113,10 +113,10 @@ export function LoginPage() {
                 <span>{isSubmitting ? 'Signing in…' : 'Sign in'}</span><span className="glyph" aria-hidden="true">→</span>
               </button>
               <span className="demo-note" style={{ justifyContent: 'center' }}>
-                New here? <Link to="/signup" className="link">Create an account</Link>
+                New here? <Link viewTransition to="/signup" className="link">Create an account</Link>
               </span>
               {env.VITE_DEMO_MODE && (
-                <span className="demo-note"><i aria-hidden="true" />Demo account · details pre-filled</span>
+                <span className="demo-note"><i aria-hidden="true" />Sign-in details are filled in for you</span>
               )}
             </div>
           </form>

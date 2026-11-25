@@ -34,7 +34,7 @@ PAGES: dict[str, str] = {
     "get-dilated-eye-exam": "healthy-vision/finding-eye-doctor/get-dilated-eye-exam",
 }
 USER_AGENT = "RetinaScreen-knowledge-fetcher/1.0 (educational eye-screening project)"
-REVIEW_STATUS = "not reviewed by the project's ophthalmologist"
+REVIEW_STATUS = "not reviewed by an eye doctor"
 DELAY_S = 1.0  # pause between requests
 
 _BLOCKS = {"p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "dt", "dd", "td", "th"}

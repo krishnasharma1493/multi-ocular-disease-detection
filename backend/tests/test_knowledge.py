@@ -146,7 +146,7 @@ def test_real_corpus_files_and_front_matter():
         assert meta["source"] == "National Eye Institute (NEI)"
         assert re.fullmatch(r"https://www\.nei\.nih\.gov/\S+", meta["url"]), slug
         assert date.fromisoformat(meta["version"]) <= date.fromisoformat(meta["retrieved"]), slug
-        assert meta["review_status"] == "not reviewed by the project's ophthalmologist"
+        assert meta["review_status"] == "not reviewed by an eye doctor"
         assert body.lstrip().startswith(f"# {meta['title']}") and "\n## " in body, slug
         assert "<" not in body and "](" not in body, f"{slug}: HTML or links left in the text"
 

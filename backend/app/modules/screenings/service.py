@@ -20,14 +20,14 @@ from PIL import Image
 from app.core.config import BACKEND_DIR, settings
 from app.core.errors import AppError
 from app.modules.screenings import inference
+from app.modules.screenings.cutoffs import cutoffs
 from app.modules.screenings.models import Screening
-from app.modules.screenings.schemas import AttentionMap, Finding, ModelInfo, ScreeningResult
+from app.modules.screenings.schemas import DISCLAIMER, AttentionMap, Finding, ModelInfo, ScreeningResult
 from src.labels import DISEASES, LABELS  # display names live in the ML package
 
 logger = logging.getLogger(__name__)
 FIXTURES = BACKEND_DIR / "seed_data" / "signature_fixtures.json"
 NO_TARGET = "No Myopia, Cataract, Glaucoma or Diabetic Retinopathy detected"
-DISCLAIMER = "Research prototype, not a medical device. This is not a diagnosis; confirm with an ophthalmologist."
 NAMES = dict(zip(LABELS, DISEASES))
 MIN_SHARPNESS = 0.30       # full fundus photo (round field of view on a black background)
 MIN_SHARPNESS_DISC = 0.18  # optic-disc close-up that fills the frame: naturally smoother (no fine vessels
@@ -90,9 +90,9 @@ def image_quality(image: Image.Image) -> Quality:
     A full fundus photo is a round field of view on black; an optic-disc close-up (as in ACRIMA) fills
     the whole frame and is naturally smoother, so it gets its own, lower sharpness minimum.
     """
-    from src.preprocessing import crop_fundus
+    from src.preprocessing import prepare_fundus
 
-    small = cv2.resize(crop_fundus(image), (512, 512), interpolation=cv2.INTER_AREA)
+    small = cv2.resize(prepare_fundus(image), (512, 512), interpolation=cv2.INTER_AREA)
     mask = small.max(axis=2) > 15
     inner = cv2.erode(mask.astype(np.uint8), np.ones((15, 15), np.uint8)) > 0
     if inner.sum() < 1000:
@@ -120,7 +120,12 @@ def image_quality(image: Image.Image) -> Quality:
 
 
 def live_result(screener: "inference.Screener", screening_id: int, image: Image.Image) -> ScreeningResult:
-    labels, thresholds = screener.labels, screener.thresholds
+    from src.preprocessing import prepare_fundus
+
+    # Small photos get adjusted cut-offs (cutoffs.py); photos 512 px and larger keep the trained ones
+    photo_px = int(prepare_fundus(image).shape[0])
+    labels = screener.labels
+    thresholds = cutoffs(screener.thresholds, photo_px, screener.model_info().get("run_id"))
 
     def run() -> tuple[list[float], int, dict[int, Any]]:
         started = time.perf_counter()
@@ -143,8 +148,10 @@ def live_result(screener: "inference.Screener", screening_id: int, image: Image.
                        "failing, check the server log.") from None
     maps = [{"disease": NAMES.get(labels[i], labels[i]), "layer": screener.layer_name,
              "available": grids[i] is not None, "grid": grids[i]} for i in grids]
-    return build_result(screening_id, labels, probabilities, thresholds, "live", latency_ms, maps,
-                        screener.model_info())
+    result = build_result(screening_id, labels, probabilities, thresholds, "live", latency_ms, maps,
+                          screener.model_info())
+    result.photo_px = photo_px
+    return result
 
 
 def run_screening(screening: Screening) -> ScreeningResult:

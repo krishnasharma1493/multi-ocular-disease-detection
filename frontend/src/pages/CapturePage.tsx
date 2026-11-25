@@ -9,6 +9,7 @@ import { env } from '../lib/env';
 import { fileSize, hhmm } from '../lib/format';
 import { Lens } from '../components/Lens';
 import { useFocusHeading } from '../components/States';
+import { reducedMotion } from '../lib/motion';
 
 const schema = z.object({
   eye: z.enum(['left', 'right'], { message: 'Choose one eye' }),
@@ -62,6 +63,15 @@ export function CapturePage() {
     return () => window.removeEventListener('resize', on);
   }, []);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  // A newly placed photo opens in the lens like an iris (the lens SVG is rebuilt on every render, so animate once here)
+  useEffect(() => {
+    if (!url || reducedMotion()) return;
+    const img = document.querySelector<SVGImageElement>('.drop-lens image');
+    img?.animate(
+      [{ clipPath: 'circle(0% at 50% 50%)', filter: 'blur(8px)' }, { clipPath: 'circle(71% at 50% 50%)', filter: 'blur(0)' }],
+      { duration: 760, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+    );
+  }, [url]);
 
   // Unsaved work: confirm before leaving (in-app navigation and tab close)
   const dirty = isDirty || !!file;
@@ -148,7 +158,7 @@ export function CapturePage() {
       setProgress({ loaded: 0, total: file.size, t0: performance.now() });
       await upload.mutateAsync({ id, file, onProgress: (loaded, total) => setProgress((p) => (p ? { ...p, loaded, total } : p)) });
       doneRef.current = true;
-      navigate(`/screenings/${id}/scan`, { state: { fromCapture: true } });
+      navigate(`/screenings/${id}/scan`, { state: { fromCapture: true }, viewTransition: true });
     } catch (e) {
       setProgress(null);
       if (isOffline(e)) {
@@ -198,7 +208,7 @@ export function CapturePage() {
 
   let under;
   if (!file) {
-    under = <div className="drop-text"><span className="big">Place your photo here</span><span className="small">JPG or PNG, up to {env.VITE_MAX_UPLOAD_MB} MB. On an iPhone, set Camera to “Most Compatible” so photos save as JPG.</span><div style={{ marginTop: 8 }}>{pick}</div>{pasteNote}</div>;
+    under = <div className="drop-text"><span className="big">Place your photo here</span><span className="small">JPG or PNG, up to {env.VITE_MAX_UPLOAD_MB} MB. Use the full-size photo, not a screenshot or thumbnail: small photos give less certain results. On an iPhone, set Camera to “Most Compatible” so photos save as JPG.</span><div style={{ marginTop: 8 }}>{pick}</div>{pasteNote}</div>;
   } else if (progress) {
     const secs = (performance.now() - progress.t0) / 1000;
     const rate = progress.loaded / Math.max(secs, 0.05);
@@ -236,7 +246,7 @@ export function CapturePage() {
         </div>
         <div className="callout-col">
           {err ? (
-            <div className="callout err" role="alert"><span className="code">{err.code}</span><span className="head">{err.head}</span><p>{err.body}</p><span className="data">{err.data}</span></div>
+            <div key={`${err.code}${err.head}`} className="callout err" role="alert"><span className="code">{err.code}</span><span className="head">{err.head}</span><p>{err.body}</p><span className="data">{err.data}</span></div>
           ) : (!file || progress) ? (
             <div className="callout"><span className="label">{source === 'phone_20d' ? 'TIP' : 'BEFORE YOU START'}</span><p>{source === 'phone_20d' ? PHONE_TIP : 'Use a photo of the back of your eye (a fundus photo) from an eye clinic. Both the optic disc and the macula should be in the frame.'}</p></div>
           ) : null}

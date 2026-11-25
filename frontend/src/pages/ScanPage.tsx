@@ -238,10 +238,10 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
         {!!analyzeError && (
           <div className={`notice ${offline ? 'notice-amber' : 'notice-red'}`} role="alert">
             <span className="label">{offline ? '◐ MODEL OFFLINE' : isOffline(analyzeError) ? '▲ ERR · NO RESPONSE' : '▲ ERR · ANALYSIS FAILED'}</span>
-            <p>{offline ? 'Model offline: no result for this image. Nothing has been made up; try again when the model is running.' : apiErrorMessage(analyzeError)}</p>
+            <p>{offline ? 'The model is offline, so there is no result for this photo yet. Try again once it is running.' : apiErrorMessage(analyzeError)}</p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <button type="button" className="btn" onClick={onRetry}>Try again</button>
-              <Link className="btn" to={`/screenings/${screening.id}`}>Open screening</Link>
+              <Link viewTransition className="btn" to={`/screenings/${screening.id}`}>Open screening</Link>
             </div>
           </div>
         )}
@@ -259,7 +259,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
           </div>
           <div className="log-col" ref={logColRef}>
             <div className="tag">
-              <div className="tag-head"><span>SPECIMEN TAG</span><span className="mute">{result ? (result.demo ? 'DEMO RESULT · PRECOMPUTED, NOT LIVE' : `LIVE MODEL OUTPUT · ${result.latency_ms} MS`) : 'MODEL RUNNING'}</span></div>
+              <div className="tag-head"><span>SPECIMEN TAG</span><span className="mute">{result ? (result.demo ? 'STORED RESULT · EARLIER RUN' : `LIVE MODEL OUTPUT · ${result.latency_ms} MS`) : 'MODEL RUNNING'}</span></div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 <span className="mono" style={{ font: '600 30px/1 var(--mono)' }}>{screening.patient_ref}</span>
                 <EyeDots eye={eyeCode(screening.eye)} />
@@ -297,7 +297,7 @@ function Flow({ screening, photo, result, analyzeError, onRetry }: {
               </div>
             )}
             <div className="scope" style={{ marginTop: 14 }}>Screens these four diseases only; other eye conditions are not checked.</div>
-            <Link className="link" style={{ marginTop: 18 }} to={`/screenings/${screening.id}`}>See your result and ask questions →</Link>
+            <Link viewTransition className="link" style={{ marginTop: 18 }} to={`/screenings/${screening.id}`}>See your result and ask questions →</Link>
           </div>
         </div>
       </div>
@@ -334,7 +334,7 @@ export function ScanPage() {
       {s!.image_source !== 'clinic_fundus' && (
         <div className="notice notice-amber" role="note" style={{ margin: '0 var(--margin) 24px' }}>
           <span className="label">EXPERIMENTAL RESULT</span>
-          <p>This photo came from a phone with a 20D lens (or an unknown source). The model has not been tested on such photos, so treat this result as experimental, not as a reliable result.</p>
+          <p>This photo came from a phone with a 20D lens (or an unknown source). The model has not been tested on photos like this, so the result may be wrong.</p>
         </div>
       )}
     </>

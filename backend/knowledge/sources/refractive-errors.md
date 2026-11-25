@@ -4,7 +4,7 @@ source: National Eye Institute (NEI)
 url: https://www.nei.nih.gov/eye-health-information/eye-conditions-and-diseases/refractive-errors
 version: 2025-12-19
 retrieved: 2026-11-23
-review_status: not reviewed by the project's ophthalmologist
+review_status: not reviewed by an eye doctor
 ---
 
 # Refractive Errors

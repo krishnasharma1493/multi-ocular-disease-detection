@@ -67,7 +67,7 @@ export function ScreeningsPage() {
     <main id="main">
       <div className="page-head">
         <div className="titles"><span className="eyebrow">YOUR SCREENING HISTORY</span><h1 ref={h} tabIndex={-1}>All results</h1></div>
-        <Link className="btn-primary" style={{ height: 52, width: 240 }} to="/screenings/new"><span>+ New screening</span><span className="glyph" aria-hidden="true">→</span></Link>
+        <Link viewTransition className="btn-primary" style={{ height: 52, width: 240 }} to="/screenings/new"><span>+ New screening</span><span className="glyph" aria-hidden="true">→</span></Link>
       </div>
       <div className="list-wrap">
         <div className="filters" role="search">
@@ -97,7 +97,7 @@ export function ScreeningsPage() {
             <span className="w2 serif">{filtered || page > 1 ? 'No screenings match these filters' : 'No screenings yet'}</span>
             {filtered || page > 1
               ? <button type="button" className="btn" onClick={() => { setText(''); setParams({}); }}>Clear filters</button>
-              : <Link className="btn" to="/screenings/new">New screening</Link>}
+              : <Link viewTransition className="btn" to="/screenings/new">New screening</Link>}
           </div>
         ) : (
           <table className="table">
@@ -111,7 +111,7 @@ export function ScreeningsPage() {
                 return (
                   <tr key={s.id}>
                     <td className="thumb" aria-hidden="true">{m.status === 'pending' ? <Lens size={48} state="empty" /> : <Lens size={48} values={m.vals} thresholds={m.ths} eye={eyeCode(s.eye) ?? 'R'} />}</td>
-                    <td><Link className="row-link mono" to={`/screenings/${s.id}`}>Screening #{s.id}</Link></td>
+                    <td><Link viewTransition className="row-link mono" to={`/screenings/${s.id}`}>Screening #{s.id}</Link></td>
                     <td><span className="sr-only">{eyeWord(s.eye)} eye</span><span aria-hidden="true"><EyeDots eye={eyeCode(s.eye)} dot={9} /></span></td>
                     <td><span className={`tagword ${g.cls}`}>{g.word}</span>{s.status === 'reviewed' && <span className="tagword mute"> · ✓ REVIEWED</span>}</td>
                     <td className="result"><b>{m.verdict}</b>{m.positives.length > 0 && <span className="chips">{m.positives.map((f) => <span key={f.code} className="chip">{f.disease}</span>)}</span>}</td>
