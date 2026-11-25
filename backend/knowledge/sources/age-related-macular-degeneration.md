@@ -4,7 +4,7 @@ source: National Eye Institute (NEI)
 url: https://www.nei.nih.gov/eye-health-information/eye-conditions-and-diseases/age-related-macular-degeneration
 version: 2021-06-22
 retrieved: 2026-11-23
-review_status: not reviewed by the project's ophthalmologist
+review_status: not reviewed by an eye doctor
 ---
 
 # Age-Related Macular Degeneration (AMD)

@@ -4,7 +4,7 @@ source: National Eye Institute (NEI)
 url: https://www.nei.nih.gov/eye-health-information/eye-conditions-and-diseases/nearsightedness-myopia
 version: 2024-12-04
 retrieved: 2026-11-23
-review_status: not reviewed by the project's ophthalmologist
+review_status: not reviewed by an eye doctor
 ---
 
 # Nearsightedness (Myopia)

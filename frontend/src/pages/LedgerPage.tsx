@@ -65,7 +65,7 @@ function ItemRow({ s, m }: Item) {
   const dateFormatted = dayStamp(m.created);
 
   return (
-    <Link
+    <Link viewTransition
       className="item"
       to={statusInfo.to}
       aria-label={`Screening from ${dateFormatted}, ${eyeLabel}. Status: ${statusInfo.label}. ${m.verdict}. ${statusInfo.actionText}.`}
@@ -243,7 +243,7 @@ export function LedgerPage() {
             </p>
 
             <div style={{ marginTop: 4 }}>
-              <Link
+              <Link viewTransition
                 to="/screenings/new"
                 className="btn-primary"
                 style={{
@@ -308,7 +308,7 @@ export function LedgerPage() {
                 </p>
 
                 <div style={{ marginTop: 8 }}>
-                  <Link
+                  <Link viewTransition
                     to="/screenings/new"
                     className="btn-primary"
                     style={{
@@ -335,7 +335,7 @@ export function LedgerPage() {
 
               {hasMore && (
                 <div style={{ marginTop: 14 }}>
-                  <Link className="link" to="/screenings">
+                  <Link viewTransition className="link" to="/screenings">
                     See all results →
                   </Link>
                 </div>

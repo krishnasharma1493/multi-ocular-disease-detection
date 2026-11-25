@@ -48,8 +48,8 @@ export function NotFound({ path }: { path: string }) {
           <div className="chart-row"><span className="n">3</span><span className="chart-w" style={{ font: '500 clamp(30px,5vw,72px)/1.15 var(--serif)', letterSpacing: '0.12em' }}>FOUND</span><span className="acuity">20/70</span></div>
         </div>
         <div className="state-actions">
-          <span className="eyebrow" style={{ fontSize: 11, letterSpacing: '0.1em' }}>ERR 404 · {path.toUpperCase()} — This screening isn't in your account.</span>
-          <Link className="link" to="/">← Back to my screenings</Link>
+          <span className="eyebrow" style={{ fontSize: 11, letterSpacing: '0.1em' }}>ERR 404 · {path.toUpperCase()} · This screening isn't in your account.</span>
+          <Link viewTransition className="link" to="/">← Back to my screenings</Link>
         </div>
       </div>
       <div style={{ justifySelf: 'center' }}><Lens size={small ? 260 : 380} state="empty" /></div>

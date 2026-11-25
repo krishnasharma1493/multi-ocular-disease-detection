@@ -63,7 +63,7 @@ export function SignupPage() {
     setConflict(false);
     try {
       await registerUser(values.name.trim(), values.email.trim(), values.password);
-      navigate('/', { replace: true });
+      navigate('/', { replace: true, viewTransition: true });
     } catch (err) {
       if (apiStatus(err) === 409 || apiError(err)?.code === 'CONFLICT') {
         setConflict(true);
@@ -173,7 +173,7 @@ export function SignupPage() {
                   {conflict && (
                     <>
                       {' · '}
-                      <Link to="/login" className="link" style={{ fontSize: 11 }}>
+                      <Link viewTransition to="/login" className="link" style={{ fontSize: 11 }}>
                         Sign in
                       </Link>
                     </>
@@ -240,7 +240,7 @@ export function SignupPage() {
               </button>
               <span className="demo-note" style={{ justifyContent: 'center' }}>
                 Already have an account?{' '}
-                <Link to="/login" className="link">
+                <Link viewTransition to="/login" className="link">
                   Sign in
                 </Link>
               </span>

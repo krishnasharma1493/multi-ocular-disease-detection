@@ -31,7 +31,7 @@ export function ResultSummary({ s }: { s: Screening }) {
             <p>Add a photo to start. You can use the “Upload photo” button above.</p>
           )}
           {sum.state === 'waiting' && (
-            <p><Link className="link" to={`/screenings/${s.id}/scan`}>Run the screening →</Link></p>
+            <p><Link viewTransition className="link" to={`/screenings/${s.id}/scan`}>Run the screening →</Link></p>
           )}
           {hasResult && (
             <ul>

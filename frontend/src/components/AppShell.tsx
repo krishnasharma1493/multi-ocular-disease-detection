@@ -7,8 +7,8 @@ import { Logo } from './Lens';
 export function Footer() {
   return (
     <footer className="foot">
-      <span>RESEARCH PROTOTYPE — NOT A DIAGNOSIS — CONFIRM WITH AN OPHTHALMOLOGIST</span>
-      <span className="mute">RETINASCREEN · EFFICIENTNET-B0</span>
+      <span>RETINASCREEN</span>
+      <span className="mute">EFFICIENTNET-B0</span>
     </footer>
   );
 }
@@ -51,7 +51,7 @@ export function AppShell() {
     <div className="frame">
       <a className="skip" href="#main">Skip to content</a>
       <header className="bezel">
-        <Link className="brand" to="/" aria-label="RetinaScreen, my screenings"><Logo /><span>RetinaScreen</span></Link>
+        <Link viewTransition className="brand" to="/" aria-label="RetinaScreen, my screenings"><Logo /><span>RetinaScreen</span></Link>
         <button ref={btnRef} type="button" className="menu-btn" aria-expanded={open} aria-controls="nav" onClick={() => setOpen((o) => !o)}>
           {open ? 'CLOSE' : 'MENU'}
         </button>
@@ -59,7 +59,7 @@ export function AppShell() {
           {TABS.map(([to, label], i) => (
             <span key={to} style={{ display: 'contents' }}>
               {i > 0 && <span className="dot" aria-hidden="true">·</span>}
-              <NavLink to={to} end>{label}</NavLink>
+              <NavLink viewTransition to={to} end>{({ isActive }) => <>{label}{isActive && <span className="nav-ind" aria-hidden="true" />}</>}</NavLink>
             </span>
           ))}
           <button type="button" className="nav-signout" onClick={logout}>Sign out</button>
